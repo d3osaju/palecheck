@@ -1,7 +1,8 @@
 """CI guard: the freshly re-derived metrics must match the committed ones.
 
 Usage: python model/check_metrics.py committed.json regenerated.json
-Counts must match exactly; AUCs and effect sizes within 0.005 (BLAS rounding differs across machines).
+Image counts must match exactly; AUCs and effect sizes within 0.005 (BLAS rounding differs across machines);
+re-crop pair counts within 2%.
 """
 import json
 import sys
@@ -15,9 +16,12 @@ def get(m, path):
 
 EXACT = [
     "audit.duplicate_groups", "audit.images_in_duplicate_groups", "audit.near_identical_pairs",
-    "audit.recrop_pairs", "audit.mirrored_copy_pairs", "audit.distinct_photographs",
+    "audit.mirrored_copy_pairs", "audit.images_added_by_recrop", "audit.distinct_photographs",
     "audit.unreliable_images", "audit.reliable_images_kept", "dataset.lockbox", "dataset.development",
 ]
+# Pair counts can differ by a few borderline pairs between machines (FFT rounding at the threshold);
+# the images they flag, checked exactly above, do not.
+RELATIVE = {"audit.recrop_pairs": 0.02}
 CLOSE = [
     "audit.memoriser_accuracy_under_random_5fold", "lockbox.auc", "nested_cv_all.auc_mean",
     "leakage_demo.0.memoriser", "leakage_demo.3.memoriser", "leakage_demo.3.colour_model",
@@ -29,9 +33,14 @@ CLOSE = [
 def main():
     committed, fresh = (json.load(open(p)) for p in sys.argv[1:3])
     failed = False
-    for path in EXACT + CLOSE:
+    for path in EXACT + CLOSE + list(RELATIVE):
         a, b = get(committed, path), get(fresh, path)
-        ok = a == b if path in EXACT else abs(a - b) <= 0.005
+        if path in EXACT:
+            ok = a == b
+        elif path in RELATIVE:
+            ok = abs(a - b) <= RELATIVE[path] * max(abs(a), 1)
+        else:
+            ok = abs(a - b) <= 0.005
         failed |= not ok
         print(f"{'ok ' if ok else 'BAD'} {path}: committed {a} / re-derived {b}")
     sys.exit(1 if failed else 0)
