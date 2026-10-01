@@ -96,17 +96,17 @@
     "images_added_by_near_identical": 12,
     "clusters_with_near_identical_copies": 7,
     "near_clusters_listing_different_patients": 7,
-    "recrop_pairs": 437,
-    "mirrored_copy_pairs": 7,
+    "recrop_pairs": 202,
+    "mirrored_copy_pairs": 3,
     "recrop_rule": "same photograph, different outline: at the best translation, RMS colour difference <= 4.0 over an overlap of >= 50% of the smaller cut-out; candidates are each image's 8 nearest colour neighbours",
-    "images_added_by_recrop": 245,
-    "clusters_with_recrops": 132,
-    "recrop_clusters_listing_different_patients": 132,
-    "copy_clusters_total": 171,
-    "distinct_photographs": 312,
-    "unreliable_images": 569,
-    "share_unreliable": 0.8014,
-    "reliable_images_kept": 141
+    "images_added_by_recrop": 247,
+    "clusters_with_recrops": 135,
+    "recrop_clusters_listing_different_patients": 135,
+    "copy_clusters_total": 169,
+    "distinct_photographs": 308,
+    "unreliable_images": 571,
+    "share_unreliable": 0.8042,
+    "reliable_images_kept": 139
   },
   "protocol_history": [
     {
@@ -136,14 +136,14 @@
     {
       "version": 3,
       "rule": "identical, near-identical and re-cropped copies removed",
-      "reliable_images": 141,
-      "lockbox_n": 40,
-      "lockbox_auc": 0.7576,
+      "reliable_images": 139,
+      "lockbox_n": 39,
+      "lockbox_auc": 0.7326,
       "lockbox_auc_ci95": [
-        0.596,
-        0.8975
+        0.5617,
+        0.8931
       ],
-      "nested_cv_auc": 0.6457
+      "nested_cv_auc": 0.6472
     }
   ],
   "dataset": {
@@ -151,11 +151,11 @@
     "source": "https://data.mendeley.com/datasets/m53vz6b7fx/1",
     "license": "CC BY 4.0",
     "doi": "10.17632/m53vz6b7fx.1",
-    "reliable_images": 141,
+    "reliable_images": 139,
     "demo_holdout": 8,
-    "development": 93,
-    "lockbox": 40,
-    "anaemic": 60,
+    "development": 92,
+    "lockbox": 39,
+    "anaemic": 58,
     "healthy": 73,
     "hospitals": 10,
     "age_months": [
@@ -165,78 +165,78 @@
     "anaemia_definition": "Hb < 11 g/dL (WHO, children 6-59 months)"
   },
   "feature_set_selection_dev_nested_cv_auc": {
-    "absolute": 0.5465,
-    "relative": 0.5608,
-    "all": 0.5492
+    "absolute": 0.6279,
+    "relative": 0.6456,
+    "all": 0.5886
   },
   "chosen_feature_set": "relative",
-  "development_nested_cv_auc": 0.5534,
+  "development_nested_cv_auc": 0.632,
   "lockbox": {
-    "n": 40,
-    "auc": 0.7576,
+    "n": 39,
+    "auc": 0.7326,
     "auc_ci95": [
-      0.596,
-      0.8975
+      0.5617,
+      0.8931
     ],
     "at_low_threshold": {
-      "threshold": 0.3731,
-      "tp": 18,
+      "threshold": 0.3417,
+      "tp": 17,
       "fn": 0,
       "tn": 4,
       "fp": 18,
       "sensitivity": 1.0,
       "specificity": 0.1818,
-      "ppv": 0.5,
+      "ppv": 0.4857,
       "npv": 1.0,
-      "accuracy": 0.55
+      "accuracy": 0.5385
     },
     "at_high_threshold": {
-      "threshold": 0.51,
-      "tp": 4,
-      "fn": 14,
-      "tn": 22,
-      "fp": 0,
-      "sensitivity": 0.2222,
-      "specificity": 1.0,
-      "ppv": 1.0,
-      "npv": 0.6111,
-      "accuracy": 0.65
+      "threshold": 0.5018,
+      "tp": 5,
+      "fn": 12,
+      "tn": 21,
+      "fp": 1,
+      "sensitivity": 0.2941,
+      "specificity": 0.9545,
+      "ppv": 0.8333,
+      "npv": 0.6364,
+      "accuracy": 0.6667
     },
     "note": "Evaluated exactly once, with thresholds fixed on development data."
   },
   "nested_cv_all": {
-    "auc_mean": 0.6457,
-    "auc_sd": 0.0158,
-    "auc_pooled": 0.6612,
+    "auc_mean": 0.6472,
+    "auc_sd": 0.031,
+    "auc_pooled": 0.6415,
     "auc_pooled_ci95": [
-      0.5669,
-      0.7509
+      0.5385,
+      0.7337
     ]
   },
   "operating_points": {
     "low": {
-      "threshold": 0.366,
-      "tp": 54,
-      "fn": 6,
-      "tn": 17,
-      "fp": 56,
-      "sensitivity": 0.9,
-      "specificity": 0.2329,
-      "ppv": 0.4909,
-      "npv": 0.7391,
-      "accuracy": 0.5338
+      "threshold": 0.3533,
+      "tp": 53,
+      "fn": 5,
+      "tn": 13,
+      "fp": 60,
+      "sensitivity": 0.9138,
+      "specificity": 0.1781,
+      "ppv": 0.469,
+      "npv": 0.7222,
+      "accuracy": 0.5038
     },
     "high": {
-      "threshold": 0.5233,
-      "tp": 24,
+      "threshold": 0.5118,
+      "tp": 22,
       "fn": 36,
       "tn": 59,
       "fp": 14,
-      "sensitivity": 0.4,
+      "sensitivity": 0.3793,
       "specificity": 0.8082,
-      "ppv": 0.6316,
+      "ppv": 0.6111,
       "npv": 0.6211,
-      "accuracy": 0.6241
+      "accuracy": 0.6183
     }
   },
   "roc": [
@@ -250,231 +250,231 @@
     ],
     [
       0.0274,
-      0.0167
+      0.0172
     ],
     [
       0.0411,
-      0.0333
+      0.0345
     ],
     [
       0.0411,
-      0.0667
+      0.069
+    ],
+    [
+      0.0411,
+      0.1034
+    ],
+    [
+      0.0411,
+      0.1552
     ],
     [
       0.0548,
-      0.0833
+      0.1724
     ],
     [
       0.0548,
-      0.1333
+      0.2069
     ],
     [
       0.0685,
-      0.15
+      0.2241
     ],
     [
       0.0822,
-      0.1667
-    ],
-    [
-      0.0822,
-      0.2
-    ],
-    [
-      0.0822,
-      0.25
+      0.2414
     ],
     [
       0.0959,
-      0.2667
-    ],
-    [
-      0.1096,
-      0.2833
-    ],
-    [
-      0.1096,
-      0.3167
+      0.2759
     ],
     [
       0.1233,
-      0.35
+      0.2759
+    ],
+    [
+      0.137,
+      0.2931
     ],
     [
       0.1507,
-      0.35
+      0.3103
+    ],
+    [
+      0.1644,
+      0.3276
     ],
     [
       0.1781,
-      0.35
+      0.3621
     ],
     [
       0.1918,
-      0.3667
+      0.3793
     ],
     [
       0.2055,
-      0.4
+      0.3966
+    ],
+    [
+      0.2192,
+      0.4138
     ],
     [
       0.2329,
-      0.4
-    ],
-    [
-      0.2329,
-      0.4333
-    ],
-    [
-      0.2466,
-      0.45
+      0.431
     ],
     [
       0.2603,
-      0.4667
+      0.4483
     ],
     [
-      0.274,
-      0.5
-    ],
-    [
-      0.2877,
-      0.5167
+      0.2603,
+      0.4828
     ],
     [
       0.2877,
-      0.55
+      0.4828
+    ],
+    [
+      0.2877,
+      0.5172
     ],
     [
       0.3151,
-      0.55
+      0.5172
     ],
     [
-      0.3151,
-      0.6
-    ],
-    [
-      0.3151,
-      0.6333
-    ],
-    [
-      0.3288,
-      0.65
-    ],
-    [
-      0.3562,
-      0.65
+      0.3425,
+      0.5345
     ],
     [
       0.3699,
-      0.6833
+      0.5345
+    ],
+    [
+      0.3699,
+      0.569
+    ],
+    [
+      0.3836,
+      0.5862
     ],
     [
       0.3973,
-      0.6833
+      0.6034
+    ],
+    [
+      0.3973,
+      0.6552
+    ],
+    [
+      0.411,
+      0.6724
     ],
     [
       0.4247,
-      0.6833
+      0.6897
     ],
     [
       0.4384,
-      0.7
+      0.7069
     ],
     [
       0.4658,
-      0.7167
+      0.7069
     ],
     [
       0.4795,
-      0.7333
+      0.7414
     ],
     [
       0.5068,
-      0.7333
+      0.7414
     ],
     [
-      0.5205,
-      0.75
+      0.5342,
+      0.7414
     ],
     [
-      0.5616,
-      0.75
+      0.5479,
+      0.7586
     ],
     [
-      0.589,
-      0.75
+      0.5753,
+      0.7586
     ],
     [
-      0.6027,
-      0.7667
+      0.6164,
+      0.7586
     ],
     [
-      0.6301,
-      0.7667
-    ],
-    [
-      0.6575,
-      0.7667
+      0.6438,
+      0.7586
     ],
     [
       0.6575,
-      0.8167
+      0.7759
     ],
     [
       0.6849,
-      0.8167
+      0.7759
+    ],
+    [
+      0.6986,
+      0.7931
     ],
     [
       0.7123,
-      0.8167
-    ],
-    [
-      0.7123,
-      0.85
+      0.8276
     ],
     [
       0.7397,
-      0.8667
-    ],
-    [
-      0.7534,
-      0.8833
+      0.8276
     ],
     [
       0.7671,
-      0.9
+      0.8276
     ],
     [
-      0.7671,
-      0.9333
+      0.7808,
+      0.8448
+    ],
+    [
+      0.7945,
+      0.8621
     ],
     [
       0.8082,
-      0.9333
+      0.8966
     ],
     [
       0.8219,
-      0.95
+      0.9138
     ],
     [
       0.8493,
-      0.95
+      0.9138
     ],
     [
       0.8767,
-      0.95
+      0.9138
     ],
     [
-      0.9041,
-      0.9667
+      0.8767,
+      0.9483
+    ],
+    [
+      0.9178,
+      0.9483
     ],
     [
       0.9315,
-      0.9667
+      0.9655
     ],
     [
       0.9452,
-      0.9833
+      0.9828
     ],
     [
       0.9589,
@@ -486,47 +486,47 @@
     ]
   ],
   "single_feature_auc": {
-    "a_mean": 0.6459,
-    "a_p25": 0.6142,
-    "L_mean": 0.5116,
-    "b_mean": 0.5881,
-    "ei_mean": 0.5918,
-    "r_chrom": 0.5947,
-    "g_chrom": 0.5792,
-    "sat_mean": 0.5909,
-    "a_std": 0.661,
-    "a_p90_minus_p10": 0.6603,
-    "a_p90_minus_p50": 0.613,
-    "ei_p90_minus_p10": 0.6436,
-    "ei_p90_minus_p50": 0.6379,
-    "a_over_L": 0.5852,
-    "a_cv": 0.576,
-    "frac_ei_above_median_plus5": 0.6589,
-    "rg_top20_minus_bottom20": 0.6333
+    "a_mean": 0.6542,
+    "a_p25": 0.619,
+    "L_mean": 0.5026,
+    "b_mean": 0.5916,
+    "ei_mean": 0.602,
+    "r_chrom": 0.6068,
+    "g_chrom": 0.5838,
+    "sat_mean": 0.6044,
+    "a_std": 0.6788,
+    "a_p90_minus_p10": 0.6816,
+    "a_p90_minus_p50": 0.6424,
+    "ei_p90_minus_p10": 0.6623,
+    "ei_p90_minus_p50": 0.6575,
+    "a_over_L": 0.594,
+    "a_cv": 0.5909,
+    "frac_ei_above_median_plus5": 0.6693,
+    "rg_top20_minus_bottom20": 0.649
   },
   "confound_check": {
-    "image_size_only_auc": 0.589
+    "image_size_only_auc": 0.5494
   },
   "leave_one_hospital_out": {
-    "pooled_auc": 0.542,
+    "pooled_auc": 0.6134,
     "per_hospital": [
       {
         "hospital": "Ahmadiyya Muslim Hospital",
-        "n": 31,
-        "anaemic": 11,
-        "auc": 0.5364
+        "n": 30,
+        "anaemic": 10,
+        "auc": 0.675
       },
       {
         "hospital": "Bolgatanga Regional Hospital",
         "n": 11,
         "anaemic": 8,
-        "auc": 0.5417
+        "auc": 0.4583
       },
       {
         "hospital": "Ejusu Government Hospital",
         "n": 10,
         "anaemic": 5,
-        "auc": 0.28
+        "auc": 0.32
       },
       {
         "hospital": "Holy Family Hospital",
@@ -542,104 +542,104 @@
       },
       {
         "hospital": "Komfo Anokye Teaching Hospital",
-        "n": 24,
-        "anaemic": 7,
-        "auc": 0.6303
+        "n": 23,
+        "anaemic": 6,
+        "auc": 0.6961
       },
       {
         "hospital": "Manhyia District Hospital",
-        "n": 11,
-        "anaemic": 7,
-        "auc": 0.8214
+        "n": 8,
+        "anaemic": 4,
+        "auc": 0.8125
       },
       {
         "hospital": "Nkawie-Toase Government Hospital",
-        "n": 13,
-        "anaemic": 4,
-        "auc": 0.5556
+        "n": 15,
+        "anaemic": 6,
+        "auc": 0.6852
       },
       {
         "hospital": "SDA Hospital",
-        "n": 3,
-        "anaemic": 3,
+        "n": 4,
+        "anaemic": 4,
         "auc": null
       },
       {
         "hospital": "Sunyani Municipal Hospital",
         "n": 20,
         "anaemic": 10,
-        "auc": 0.57
+        "auc": 0.56
       }
     ]
   },
   "subgroups": [
     {
       "group": "Girls",
-      "n": 56,
-      "auc": 0.6354
+      "n": 55,
+      "auc": 0.6043
     },
     {
       "group": "Boys",
-      "n": 77,
-      "auc": 0.6829
+      "n": 76,
+      "auc": 0.6717
     },
     {
       "group": "Under 24 months",
       "n": 41,
-      "auc": 0.575
+      "auc": 0.58
     },
     {
       "group": "24 months and older",
-      "n": 92,
-      "auc": 0.6872
+      "n": 90,
+      "auc": 0.656
     },
     {
       "group": "Severe only (Hb < 7) vs healthy",
-      "n": 77,
-      "auc": 0.6096
+      "n": 76,
+      "auc": 0.5388
     }
   ],
   "hb_regression": {
-    "mae": 1.694,
-    "baseline_mae": 1.72,
-    "pearson_r": 0.1327
+    "mae": 1.631,
+    "baseline_mae": 1.695,
+    "pearson_r": 0.1445
   },
   "feature_weights": [
     {
       "feature": "a_p90_minus_p10",
-      "weight": -0.3343
+      "weight": -0.0935
     },
     {
       "feature": "a_p90_minus_p50",
-      "weight": 0.1122
+      "weight": -0.0418
     },
     {
       "feature": "ei_p90_minus_p10",
-      "weight": -0.1128
+      "weight": -0.0729
     },
     {
       "feature": "ei_p90_minus_p50",
-      "weight": -0.0579
+      "weight": -0.0524
     },
     {
       "feature": "a_over_L",
-      "weight": -0.0333
+      "weight": -0.0499
     },
     {
       "feature": "a_cv",
-      "weight": 0.0792
+      "weight": -0.0171
     },
     {
       "feature": "frac_ei_above_median_plus5",
-      "weight": -0.2182
+      "weight": -0.091
     },
     {
       "feature": "rg_top20_minus_bottom20",
-      "weight": -0.1424
+      "weight": -0.0615
     }
   ],
   "lighting_simulation": {
-    "disease_gap_a_star": 3.645,
+    "disease_gap_a_star": 3.925,
     "illuminants": [
       {
         "kelvin": 2700,
@@ -648,12 +648,12 @@
           173,
           89
         ],
-        "a_star_shift_uncorrected": 14.64,
+        "a_star_shift_uncorrected": 14.703,
         "a_star_shift_with_card": -0.0,
-        "shift_vs_disease_gap_uncorrected": 4.02,
-        "absolute_features_mean_shift_in_sd": 2.103,
-        "relative_features_mean_shift_in_sd": 0.67,
-        "model_prob_mean_abs_change_uncorrected": 0.0435,
+        "shift_vs_disease_gap_uncorrected": 3.75,
+        "absolute_features_mean_shift_in_sd": 2.083,
+        "relative_features_mean_shift_in_sd": 0.665,
+        "model_prob_mean_abs_change_uncorrected": 0.0198,
         "model_prob_mean_abs_change_with_card": 0.0
       },
       {
@@ -663,12 +663,12 @@
           199,
           139
         ],
-        "a_star_shift_uncorrected": 9.548,
+        "a_star_shift_uncorrected": 9.584,
         "a_star_shift_with_card": 0.0,
-        "shift_vs_disease_gap_uncorrected": 2.62,
-        "absolute_features_mean_shift_in_sd": 1.387,
-        "relative_features_mean_shift_in_sd": 0.43,
-        "model_prob_mean_abs_change_uncorrected": 0.0289,
+        "shift_vs_disease_gap_uncorrected": 2.44,
+        "absolute_features_mean_shift_in_sd": 1.374,
+        "relative_features_mean_shift_in_sd": 0.428,
+        "model_prob_mean_abs_change_uncorrected": 0.0114,
         "model_prob_mean_abs_change_with_card": 0.0
       },
       {
@@ -678,12 +678,12 @@
           211,
           165
         ],
-        "a_star_shift_uncorrected": 7.296,
+        "a_star_shift_uncorrected": 7.322,
         "a_star_shift_with_card": 0.0,
-        "shift_vs_disease_gap_uncorrected": 2.0,
-        "absolute_features_mean_shift_in_sd": 1.055,
-        "relative_features_mean_shift_in_sd": 0.328,
-        "model_prob_mean_abs_change_uncorrected": 0.0226,
+        "shift_vs_disease_gap_uncorrected": 1.87,
+        "absolute_features_mean_shift_in_sd": 1.046,
+        "relative_features_mean_shift_in_sd": 0.327,
+        "model_prob_mean_abs_change_uncorrected": 0.0082,
         "model_prob_mean_abs_change_with_card": 0.0
       },
       {
@@ -693,12 +693,12 @@
           230,
           208
         ],
-        "a_star_shift_uncorrected": 4.123,
+        "a_star_shift_uncorrected": 4.137,
         "a_star_shift_with_card": 0.0,
-        "shift_vs_disease_gap_uncorrected": 1.13,
-        "absolute_features_mean_shift_in_sd": 0.561,
+        "shift_vs_disease_gap_uncorrected": 1.05,
+        "absolute_features_mean_shift_in_sd": 0.556,
         "relative_features_mean_shift_in_sd": 0.185,
-        "model_prob_mean_abs_change_uncorrected": 0.013,
+        "model_prob_mean_abs_change_uncorrected": 0.0043,
         "model_prob_mean_abs_change_with_card": 0.0
       }
     ]
@@ -708,49 +708,49 @@
       "id": "Image_069",
       "label": 1,
       "hb": 8.0,
-      "p": 0.5011
+      "p": 0.4596
     },
     {
-      "id": "Image_099",
+      "id": "Image_094",
       "label": 1,
       "hb": 10.2,
-      "p": 0.6628
+      "p": 0.4974
     },
     {
-      "id": "Image_268",
+      "id": "Image_294",
       "label": 1,
-      "hb": 7.0,
-      "p": 0.5402
+      "hb": 5.9,
+      "p": 0.4277
     },
     {
-      "id": "Image_338",
+      "id": "Image_358",
       "label": 1,
       "hb": 10.5,
-      "p": 0.5567
+      "p": 0.5236
     },
     {
       "id": "Image_004",
       "label": 0,
       "hb": 12.5,
-      "p": 0.552
+      "p": 0.5075
     },
     {
       "id": "Image_073",
       "label": 0,
       "hb": 14.2,
-      "p": 0.3596
+      "p": 0.4027
     },
     {
       "id": "Image_351",
       "label": 0,
       "hb": 13.3,
-      "p": 0.6219
+      "p": 0.496
     },
     {
       "id": "Image_571",
       "label": 0,
       "hb": 12.0,
-      "p": 0.4645
+      "p": 0.4506
     }
   ],
   "operating_curve": [
@@ -857,237 +857,237 @@
     [
       20,
       1.0,
-      0.0411
+      0.0274
     ],
     [
       21,
       1.0,
-      0.0411
+      0.0274
     ],
     [
       22,
       1.0,
-      0.0548
+      0.0274
     ],
     [
       23,
       1.0,
-      0.0548
+      0.0274
     ],
     [
       24,
-      0.9833,
-      0.0548
+      1.0,
+      0.0274
     ],
     [
       25,
-      0.9833,
-      0.0548
+      0.9828,
+      0.0411
     ],
     [
       26,
-      0.9667,
-      0.0685
+      0.9828,
+      0.0548
     ],
     [
       27,
-      0.9667,
+      0.9655,
       0.0685
     ],
     [
       28,
-      0.95,
-      0.0959
+      0.9483,
+      0.0822
     ],
     [
       29,
-      0.95,
+      0.9483,
       0.0959
     ],
     [
       30,
-      0.95,
-      0.0959
-    ],
-    [
-      31,
-      0.95,
+      0.9483,
       0.1096
     ],
     [
+      31,
+      0.931,
+      0.1233
+    ],
+    [
       32,
-      0.95,
-      0.137
+      0.931,
+      0.1233
     ],
     [
       33,
-      0.95,
-      0.1644
+      0.9138,
+      0.1233
     ],
     [
       34,
-      0.9333,
-      0.1918
+      0.9138,
+      0.137
     ],
     [
       35,
-      0.9333,
-      0.2055
+      0.9138,
+      0.137
     ],
     [
       36,
-      0.9333,
-      0.2192
+      0.8966,
+      0.1918
     ],
     [
       37,
-      0.8833,
-      0.2466
+      0.8621,
+      0.2192
     ],
     [
       38,
-      0.85,
-      0.2877
+      0.8276,
+      0.2329
     ],
     [
       39,
-      0.8167,
-      0.3014
+      0.7931,
+      0.2877
     ],
     [
       40,
-      0.8167,
-      0.3151
+      0.7931,
+      0.3014
     ],
     [
       41,
-      0.7833,
-      0.3425
+      0.7586,
+      0.3562
     ],
     [
       42,
-      0.7667,
-      0.3699
+      0.7586,
+      0.411
     ],
     [
       43,
-      0.75,
-      0.4384
+      0.7586,
+      0.4521
     ],
     [
       44,
-      0.75,
-      0.4795
+      0.7414,
+      0.5205
     ],
     [
       45,
-      0.7,
-      0.5616
+      0.6379,
+      0.6027
     ],
     [
       46,
-      0.6833,
-      0.589
+      0.5862,
+      0.6301
     ],
     [
       47,
-      0.65,
-      0.6438
+      0.5345,
+      0.6712
     ],
     [
       48,
-      0.6167,
-      0.6849
-    ],
-    [
-      49,
-      0.55,
-      0.7123
-    ],
-    [
-      50,
-      0.4833,
+      0.4828,
       0.726
     ],
     [
-      51,
-      0.45,
+      49,
+      0.4483,
       0.7534
     ],
     [
-      52,
-      0.4,
-      0.7671
+      50,
+      0.4138,
+      0.7808
     ],
     [
-      53,
-      0.35,
+      51,
+      0.3793,
+      0.8082
+    ],
+    [
+      52,
+      0.3448,
       0.8219
     ],
     [
+      53,
+      0.2759,
+      0.8904
+    ],
+    [
       54,
-      0.3333,
-      0.8904
-    ],
-    [
-      55,
-      0.2833,
-      0.8904
-    ],
-    [
-      56,
-      0.1833,
-      0.9178
-    ],
-    [
-      57,
-      0.1333,
+      0.2241,
       0.9315
     ],
     [
-      58,
-      0.0833,
+      55,
+      0.1897,
       0.9452
     ],
     [
+      56,
+      0.1034,
+      0.9589
+    ],
+    [
+      57,
+      0.0862,
+      0.9589
+    ],
+    [
+      58,
+      0.0517,
+      0.9589
+    ],
+    [
       59,
-      0.0667,
+      0.0517,
       0.9589
     ],
     [
       60,
-      0.0167,
+      0.0345,
       0.9589
     ],
     [
       61,
-      0.0,
-      0.9726
+      0.0345,
+      0.9589
     ],
     [
       62,
-      0.0,
-      0.9726
+      0.0172,
+      0.9863
     ],
     [
       63,
       0.0,
-      0.9726
+      0.9863
     ],
     [
       64,
       0.0,
-      0.9726
+      0.9863
     ],
     [
       65,
       0.0,
-      0.9726
+      1.0
     ],
     [
       66,
       0.0,
-      0.9863
+      1.0
     ],
     [
       67,
@@ -1281,9 +1281,9 @@
     },
     {
       "level": "re-crops removed",
-      "images": 141,
-      "memoriser": 0.5638,
-      "colour_model": 0.6682
+      "images": 139,
+      "memoriser": 0.5856,
+      "colour_model": 0.682
     }
   ]
 }

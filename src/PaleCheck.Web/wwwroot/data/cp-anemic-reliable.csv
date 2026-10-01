@@ -24,11 +24,11 @@ Image_073,non-anaemic,14.2,60,Male,Manhyia District Hospital,demo
 Image_075,non-anaemic,11.1,60,Female,Ahmadiyya Muslim Hospital,development
 Image_088,non-anaemic,13.0,24,Male,Komfo Anokye Teaching Hospital,lockbox
 Image_092,anaemic,10.7,60,Male,Manhyia District Hospital,development
-Image_094,anaemic,10.2,60,Female,Manhyia District Hospital,development
+Image_094,anaemic,10.2,60,Female,Manhyia District Hospital,demo
 Image_096,non-anaemic,12.9,12,Female,Komfo Anokye Teaching Hospital,development
 Image_097,non-anaemic,12.9,24,Male,Ahmadiyya Muslim Hospital,lockbox
 Image_098,non-anaemic,12.9,12,Male,Komfo Anokye Teaching Hospital,development
-Image_099,anaemic,10.2,24,Male,Nkawie-Toase Government Hospital,demo
+Image_099,anaemic,10.2,24,Male,Nkawie-Toase Government Hospital,development
 Image_100,non-anaemic,12.9,36,Male,Ejusu Government Hospital,development
 Image_103,non-anaemic,12.9,60,Male,Ahmadiyya Muslim Hospital,development
 Image_104,anaemic,10.2,36,Male,Bolgatanga Regional Hospital,development
@@ -36,22 +36,20 @@ Image_106,non-anaemic,12.9,60,Male,Komfo Anokye Teaching Hospital,lockbox
 Image_107,non-anaemic,12.9,36,Female,Ahmadiyya Muslim Hospital,lockbox
 Image_108,non-anaemic,12.9,36,Female,Ahmadiyya Muslim Hospital,development
 Image_114,non-anaemic,12.9,24,Male,Komfo Anokye Teaching Hospital,development
-Image_116,anaemic,7.0,12,Male,SDA Hospital,development
+Image_116,anaemic,7.0,12,Male,SDA Hospital,lockbox
 Image_117,non-anaemic,12.4,48,Female,Ejusu Government Hospital,development
-Image_120,anaemic,7.3,12,Male,Bolgatanga Regional Hospital,lockbox
+Image_120,anaemic,7.3,12,Male,Bolgatanga Regional Hospital,development
 Image_130,non-anaemic,12.0,48,Female,Ahmadiyya Muslim Hospital,lockbox
 Image_131,non-anaemic,12.0,48,Male,Komfo Anokye Teaching Hospital,lockbox
 Image_133,non-anaemic,12.0,12,Female,Kintampo Municipal Hospital,development
 Image_144,anaemic,9.0,12,Male,Sunyani Municipal Hospital,lockbox
 Image_145,non-anaemic,12.5,60,Male,Sunyani Municipal Hospital,development
-Image_148,anaemic,9.7,48,Female,Manhyia District Hospital,development
 Image_150,anaemic,9.98,48,Female,Manhyia District Hospital,development
 Image_152,anaemic,10.0,60,Female,Ahmadiyya Muslim Hospital,development
-Image_154,anaemic,10.0,12,Male,Nkawie-Toase Government Hospital,lockbox
+Image_154,anaemic,10.0,12,Male,Nkawie-Toase Government Hospital,development
 Image_161,anaemic,10.2,12,Male,Ahmadiyya Muslim Hospital,lockbox
 Image_166,anaemic,10.0,24,Female,Ahmadiyya Muslim Hospital,lockbox
-Image_171,anaemic,7.1,36,Male,Ahmadiyya Muslim Hospital,development
-Image_180,anaemic,10.4,24,Female,Komfo Anokye Teaching Hospital,development
+Image_180,anaemic,10.4,24,Female,Komfo Anokye Teaching Hospital,lockbox
 Image_184,non-anaemic,13.1,36,Male,Manhyia District Hospital,lockbox
 Image_185,non-anaemic,13.1,11,Male,Ahmadiyya Muslim Hospital,development
 Image_187,anaemic,10.4,12,Female,Kintampo Municipal Hospital,development
@@ -68,14 +66,14 @@ Image_246,anaemic,6.5,12,Male,Ahmadiyya Muslim Hospital,development
 Image_247,anaemic,8.9,24,Female,SDA Hospital,development
 Image_258,anaemic,9.1,6,Male,Manhyia District Hospital,development
 Image_265,anaemic,10.5,60,Female,Bolgatanga Regional Hospital,development
-Image_267,anaemic,10.52,48,Male,Ahmadiyya Muslim Hospital,lockbox
-Image_268,anaemic,7.0,36,Female,SDA Hospital,demo
+Image_267,anaemic,10.52,48,Male,Ahmadiyya Muslim Hospital,development
+Image_268,anaemic,7.0,36,Female,SDA Hospital,development
 Image_276,non-anaemic,12.02,48,Female,Sunyani Municipal Hospital,development
 Image_280,non-anaemic,11.0,24,Female,Nkawie-Toase Government Hospital,development
 Image_288,non-anaemic,11.0,48,Male,Komfo Anokye Teaching Hospital,lockbox
 Image_292,non-anaemic,11.0,48,Female,Manhyia District Hospital,development
-Image_294,anaemic,5.9,12,Male,Manhyia District Hospital,lockbox
-Image_295,anaemic,6.8,60,Male,Bolgatanga Regional Hospital,development
+Image_294,anaemic,5.9,12,Male,Manhyia District Hospital,demo
+Image_295,anaemic,6.8,60,Male,Bolgatanga Regional Hospital,lockbox
 Image_304,anaemic,8.0,12,Male,Komfo Anokye Teaching Hospital,development
 Image_305,non-anaemic,11.9,12,Male,Ahmadiyya Muslim Hospital,development
 Image_311,non-anaemic,11.9,36,Male,Sunyani Municipal Hospital,development
@@ -83,21 +81,21 @@ Image_312,non-anaemic,11.9,60,Male,Komfo Anokye Teaching Hospital,development
 Image_323,non-anaemic,11.2,48,Female,Ahmadiyya Muslim Hospital,development
 Image_326,anaemic,8.7,60,Female,Sunyani Municipal Hospital,development
 Image_337,non-anaemic,12.4,60,Female,Ejusu Government Hospital,development
-Image_338,anaemic,10.5,12,Male,Nkawie-Toase Government Hospital,demo
+Image_338,anaemic,10.5,12,Male,Nkawie-Toase Government Hospital,development
 Image_339,non-anaemic,12.1,12,Male,Nkawie-Toase Government Hospital,development
 Image_340,non-anaemic,12.5,48,Female,Ejusu Government Hospital,development
 Image_351,non-anaemic,13.3,48,Male,Kintampo Municipal Hospital,demo
 Image_355,non-anaemic,13.4,12,Female,Bolgatanga Regional Hospital,development
 Image_356,non-anaemic,12.3,12,Female,Ahmadiyya Muslim Hospital,development
 Image_357,non-anaemic,13.4,36,Male,Komfo Anokye Teaching Hospital,development
-Image_358,anaemic,10.5,36,Male,Komfo Anokye Teaching Hospital,lockbox
+Image_358,anaemic,10.5,36,Male,Komfo Anokye Teaching Hospital,demo
 Image_359,non-anaemic,12.3,12,Male,Ahmadiyya Muslim Hospital,lockbox
 Image_360,non-anaemic,12.3,24,Female,Ahmadiyya Muslim Hospital,lockbox
 Image_362,non-anaemic,12.3,60,Female,Ahmadiyya Muslim Hospital,development
 Image_364,non-anaemic,12.3,60,Male,Manhyia District Hospital,development
-Image_389,anaemic,9.6,9,Male,Sunyani Municipal Hospital,development
-Image_397,anaemic,10.1,48,Female,Ahmadiyya Muslim Hospital,lockbox
-Image_412,anaemic,8.0,12,Male,Ejusu Government Hospital,development
+Image_389,anaemic,9.6,9,Male,Sunyani Municipal Hospital,lockbox
+Image_397,anaemic,10.1,48,Female,Ahmadiyya Muslim Hospital,development
+Image_412,anaemic,8.0,12,Male,Ejusu Government Hospital,lockbox
 Image_415,non-anaemic,11.7,24,Female,Sunyani Municipal Hospital,development
 Image_416,non-anaemic,11.7,12,Female,Ejusu Government Hospital,development
 Image_425,anaemic,8.0,24,Female,Sunyani Municipal Hospital,development
@@ -113,24 +111,24 @@ Image_472,non-anaemic,12.7,24,Female,Sunyani Municipal Hospital,development
 Image_486,non-anaemic,11.2,24,Male,Komfo Anokye Teaching Hospital,development
 Image_491,non-anaemic,12.0,36,Female,Nkawie-Toase Government Hospital,lockbox
 Image_493,non-anaemic,12.1,24,Female,Manhyia District Hospital,lockbox
-Image_497,anaemic,9.1,24,Male,Ejusu Government Hospital,lockbox
-Image_503,anaemic,10.2,12,Male,Manhyia District Hospital,lockbox
+Image_497,anaemic,9.1,24,Male,Ejusu Government Hospital,development
+Image_503,anaemic,10.2,12,Male,Manhyia District Hospital,development
 Image_517,non-anaemic,12.3,12,Female,Ahmadiyya Muslim Hospital,development
-Image_523,anaemic,9.5,24,Female,Kintampo Municipal Hospital,development
+Image_523,anaemic,9.5,24,Female,Kintampo Municipal Hospital,lockbox
 Image_528,anaemic,9.7,36,Female,Ahmadiyya Muslim Hospital,development
 Image_531,non-anaemic,12.3,48,Female,Sunyani Municipal Hospital,development
 Image_538,non-anaemic,12.3,12,Female,Nkawie-Toase Government Hospital,development
 Image_543,non-anaemic,12.6,48,Male,Bolgatanga Regional Hospital,development
-Image_546,anaemic,10.0,36,Male,Komfo Anokye Teaching Hospital,lockbox
-Image_554,anaemic,10.0,12,Male,Ahmadiyya Muslim Hospital,development
+Image_546,anaemic,10.0,36,Male,Komfo Anokye Teaching Hospital,development
+Image_554,anaemic,10.0,12,Male,Ahmadiyya Muslim Hospital,lockbox
 Image_561,non-anaemic,12.6,36,Female,Komfo Anokye Teaching Hospital,lockbox
 Image_571,non-anaemic,12.0,36,Male,Ahmadiyya Muslim Hospital,demo
-Image_572,anaemic,9.0,36,Male,Sunyani Municipal Hospital,lockbox
-Image_575,anaemic,7.9,36,Male,Sunyani Municipal Hospital,development
+Image_572,anaemic,9.0,36,Male,Sunyani Municipal Hospital,development
+Image_575,anaemic,7.9,36,Male,Sunyani Municipal Hospital,lockbox
 Image_576,non-anaemic,11.6,60,Male,Sunyani Municipal Hospital,development
-Image_606,anaemic,7.7,48,Male,Sunyani Municipal Hospital,development
-Image_621,anaemic,7.1,12,Male,Sunyani Municipal Hospital,lockbox
-Image_658,anaemic,9.5,8,Male,Holy Family Hospital,development
+Image_606,anaemic,7.7,48,Male,Sunyani Municipal Hospital,lockbox
+Image_621,anaemic,7.1,12,Male,Sunyani Municipal Hospital,development
+Image_658,anaemic,9.5,8,Male,Holy Family Hospital,lockbox
 Image_662,anaemic,10.3,12,Male,Kintampo Municipal Hospital,development
 Image_665,anaemic,10.6,12,Male,Komfo Anokye Teaching Hospital,development
 Image_673,non-anaemic,12.1,48,Female,Ahmadiyya Muslim Hospital,lockbox

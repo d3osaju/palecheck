@@ -93,14 +93,23 @@ def find_recrop_pairs(items, features):
 
     Validation (see README): comparing the same candidate pairs with one image mirrored gives a null
     distribution; at RMS <= 4 it only matches true mirror-image copies (RMS 0), next-lowest 4.19."""
-    Z = (features - features.mean(0)) / features.std(0)
+    # Search among distinct photographs only: otherwise an image's neighbour slots fill up with its own
+    # pixel-identical copies (distance 0) and its re-crops are never compared.
+    reps, seen = [], set()
+    for i, it in enumerate(items):
+        key = it["rgba"].tobytes()
+        if key not in seen:
+            seen.add(key)
+            reps.append(i)
+    F = features[reps]
+    Z = (F - F.mean(0)) / F.std(0)
     D = np.sqrt(((Z[:, None, :] - Z[None, :, :]) ** 2).sum(-1))
     np.fill_diagonal(D, np.inf)
-    cands = {tuple(sorted((i, int(j)))) for i in range(len(items)) for j in np.argsort(D[i])[:RECROP_NEIGHBOURS]}
+    # Stable sort: NumPy's default sort breaks ties differently on different CPUs (SIMD sorting).
+    cands = {tuple(sorted((reps[r], reps[int(s)])))
+             for r in range(len(reps)) for s in np.argsort(D[r], kind="stable")[:RECROP_NEIGHBOURS]}
     pairs = []
     for i, j in sorted(cands):
-        if items[i]["rgba"].tobytes() == items[j]["rgba"].tobytes():
-            continue
         a, b = items[i]["rgba"], items[j]["rgba"]
         rms = recrop_rms(a, b)
         rms_mirror = recrop_rms(a, b[:, ::-1])
