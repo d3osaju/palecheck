@@ -1,0 +1,407 @@
+@page "/check"
+@implements IDisposable
+@inject Lang L
+@inject AppData Data
+@inject History History
+
+<PageTitle>@L["check.title"] · PaleCheck</PageTitle>
+
+<h1>@L["check.title"]</h1>
+
+<ol class="stepper" aria-label="Steps">
+    @foreach (var (step, key) in Steps)
+    {
+        <li class="@(step == _step ? "now" : step < _step ? "done" : "")">@L[key]</li>
+    }
+</ol>
+
+@if (_step == Step.Prepare)
+{
+    <section class="panel">
+        <ol class="how">
+            <li>@L["prep.1"]</li>
+            <li>@L["prep.2"]</li>
+            <li>@L["prep.3"]</li>
+            <li>@L["prep.4"]</li>
+        </ol>
+        <p class="note"><a href="card">@L["cardpage.title"]</a> — @L["prep.nocard"]</p>
+        <div class="actions"><button class="btn primary" @onclick="() => Go(Step.Photo)">@L["prep.next"]</button></div>
+    </section>
+}
+
+@if (_step == Step.Photo)
+{
+    <section class="panel">
+        @if (_shots.Count > 0)
+        {
+            <p class="note">📸 @L.F("result.basedOn", _shots.Count, Min, Max) — @L["result.addPhotoWhy"]</p>
+        }
+        <div class="actions">
+            <label class="btn primary">📷 @L["photo.take"]
+                <input type="file" accept="image/*" capture="environment" hidden @ref="_camera" @onchange="() => OnFileAsync(_camera)" />
+            </label>
+            <label class="btn">🖼️ @L["photo.choose"]
+                <input type="file" accept="image/*" hidden @ref="_gallery" @onchange="() => OnFileAsync(_gallery)" />
+            </label>
+        </div>
+        @if (_error is not null)
+        {
+            <p class="issue block">@_error</p>
+        }
+        @if (_shots.Count == 0)
+        {
+            <h3>@L["photo.sample"]</h3>
+            <p class="muted small">@L["photo.sampleNote"]</p>
+            <div class="samples">
+                @for (int i = 0; i < _samples.Length; i++)
+                {
+                    var s = _samples[i];
+                    var n = i + 1;
+                    <button class="sample" @onclick="() => OnSampleAsync(s)" aria-label="Sample @n">
+                        <img src="@s.File" alt="" loading="lazy" />
+                        <span>#@n</span>
+                    </button>
+                }
+            </div>
+        }
+    </section>
+}
+
+<div class="@(_step is Step.Card or Step.Paint ? "" : "hidden")">
+    @if (_step == Step.Card)
+    {
+        <p class="instruction">@(_cardMissed ? L["card.notFound"] : L["card.tap"])</p>
+        @if (_card is not null)
+        {
+            <p class="swatch-row">
+                <span class="swatch" style="background: rgb(@((int)_card.R), @((int)_card.G), @((int)_card.B))"></span>
+                @L["card.picked"] — RGB @((int)_card.R), @((int)_card.G), @((int)_card.B)
+            </p>
+            @if (_cardUneven)
+            {
+                <p class="issue">@L["card.uneven"]</p>
+            }
+        }
+    }
+    @if (_step == Step.Paint)
+    {
+        @if (_card is not null && _cardAuto)
+        {
+            <p class="swatch-row ok">
+                <span class="swatch" style="background: rgb(@((int)_card.R), @((int)_card.G), @((int)_card.B))"></span>
+                ✓ @L["card.auto"] · <button class="linkish" @onclick="ChangeCardAsync">@L["card.change"]</button>
+            </p>
+        }
+        <p class="instruction">@(_sample is null ? L["paint.wand"] : L["paint.howto"])</p>
+        @if (_wand is "too-large" or "nothing")
+        {
+            <p class="issue">@L[_wand == "too-large" ? "wand.tooLarge" : "wand.nothing"]</p>
+        }
+    }
+
+    <EyeEditor @ref="_editor" ShowCardTool="_step == Step.Card" CardPicked="OnCardPicked"
+               MaskChanged="c => _maskCount = c" WandResult="s => _wand = s" />
+
+    <div class="actions sticky">
+        <button class="btn" @onclick="BackFromEditor">@L["back"]</button>
+        @if (_step == Step.Card)
+        {
+            <button class="btn ghost" @onclick="SkipCardAsync">@L["card.skip"]</button>
+            <button class="btn primary" disabled="@(_card is null)" @onclick="() => ToPaintAsync()">@L["next"]</button>
+        }
+        else
+        {
+            <button class="btn primary" disabled="@(_maskCount == 0 || _busy)" @onclick="MeasureAsync">@L["paint.measure"]</button>
+        }
+    </div>
+</div>
+
+@if (_step == Step.Result && _last is not null && _model is not null && _metrics is not null)
+{
+    <section class="panel result">
+        @if (!_last.Measured)
+        {
+            <h2>@L["result.notMeasured"]</h2>
+            @foreach (var issue in _last.Issues)
+            {
+                <p class="issue @(AnalysisResult.IsBlocking(issue) ? "block" : "")">@L["q." + issue]</p>
+            }
+            <div class="actions"><button class="btn primary" @onclick="() => Go(Step.Paint)">@L["back"]</button></div>
+        }
+        else
+        {
+            var band = _model.BandFor(Average);
+            <div class="score band-@band">
+                <div class="dial">
+                    <span class="num">@Index(Average)</span>
+                    <span class="of">/100</span>
+                </div>
+                <div>
+                    <p class="label">@L["result.index"]</p>
+                    <p class="band">@L["band." + band]</p>
+                    @if (_shots.Count > 1)
+                    {
+                        <p class="label">@L.F("result.basedOn", _shots.Count, Min, Max)</p>
+                    }
+                </div>
+            </div>
+            <p class="advice">@L["advice." + band]</p>
+
+            @foreach (var issue in _shots.SelectMany(s => s.Issues).Distinct())
+            {
+                <p class="issue">@L["q." + issue]</p>
+            }
+
+            @if (_sample is not null)
+            {
+                <p class="truth">@L.F("result.sampleTruth", _sample.Hb.ToString("0.0"), _sample.Anaemic ? L["word.anaemic"] : L["word.healthy"])</p>
+            }
+            else if (_shots.Count < MaxShots)
+            {
+                <div class="actions">
+                    <button class="btn" @onclick="AddPhoto">➕ @L["result.addPhoto"]</button>
+                </div>
+            }
+
+            <div class="symptoms">
+                <h3>@L["symptoms.title"]</h3>
+                @foreach (var key in SymptomKeys)
+                {
+                    <label class="check">
+                        <input type="checkbox" checked="@_symptoms.Contains(key)" @onchange="e => Toggle(key, e)" />
+                        <span>@L[key]</span>
+                    </label>
+                }
+                @if (_symptoms.Count > 0)
+                {
+                    <p class="callout strong">🩸 @L["symptoms.any"]</p>
+                }
+            </div>
+
+            <h3>@L.F("result.chart", _metrics.Dataset.Anaemic + _metrics.Dataset.Healthy)</h3>
+            <DistributionChart Healthy="_model.Reference.HealthyHistogram" Anaemic="_model.Reference.AnaemicHistogram"
+                               Marker="Average" MarkerLabel="@L["result.you"]"
+                               HealthyLabel="@L["result.healthy"]" AnaemicLabel="@L["result.anaemic"]" />
+
+            <div class="callout">
+                <p>@L.F("result.honest", _metrics.Lockbox.N, _metrics.Lockbox.Auc.ToString("0.00", CultureInfo.InvariantCulture))</p>
+                <p class="muted small">@L["result.reference"]</p>
+            </div>
+
+            <div class="cards2">
+                <div class="info">
+                    <h3>🩸 @L["test.title"]</h3>
+                    <p>@L["test.body"]</p>
+                </div>
+                <div class="info">
+                    <h3>🥬 @L["food.title"]</h3>
+                    <p>@L["food.body"]</p>
+                </div>
+            </div>
+
+            <div class="actions">
+                @if (_sample is null)
+                {
+                    <button class="btn" disabled="@_saved" @onclick="SaveAsync">@(_saved ? L["result.saved"] : L["result.save"])</button>
+                }
+                <button class="btn primary" @onclick="Restart">@L["restart"]</button>
+            </div>
+        }
+    </section>
+}
+
+<p class="disclaimer">@L["disclaimer"]</p>
+
+@code {
+    private enum Step { Prepare, Photo, Card, Paint, Result }
+
+    private static readonly (Step, string)[] Steps =
+        [(Step.Prepare, "step.prepare"), (Step.Photo, "step.photo"), (Step.Card, "step.card"), (Step.Paint, "step.paint"), (Step.Result, "step.result")];
+
+    private static readonly string[] SymptomKeys =
+        ["symptoms.tired", "symptoms.breath", "symptoms.dizzy", "symptoms.periods", "symptoms.nails", "symptoms.pica"];
+
+    private const int MaxShots = 5;
+
+    /// <summary>/check?sample=3 runs a research sample straight to the result (one-tap demo).</summary>
+    [SupplyParameterFromQuery(Name = "sample")] public int? SampleNumber { get; set; }
+
+    private Step _step = Step.Prepare;
+    private EyeEditor? _editor;
+    private ElementReference _camera, _gallery;
+    private Sample[] _samples = [];
+    private Sample? _sample;
+    private Rgb? _card;
+    private bool _cardUneven, _cardAuto, _cardMissed, _busy, _saved, _autoRunDone;
+    private int _maskCount;
+    private string? _error, _wand;
+    private readonly List<AnalysisResult> _shots = [];
+    private readonly HashSet<string> _symptoms = [];
+    private AnalysisResult? _last;
+    private PallorModel? _model;
+    private Metrics? _metrics;
+
+    private double Average => _shots.Count == 0 ? 0 : _shots.Average(s => s.Probability);
+    private int Min => _shots.Count == 0 ? 0 : _shots.Min(s => s.PallorIndex);
+    private int Max => _shots.Count == 0 ? 0 : _shots.Max(s => s.PallorIndex);
+    private static int Index(double p) => (int)Math.Round(p * 100);
+
+    protected override async Task OnInitializedAsync()
+    {
+        L.Changed += Refresh;
+        _samples = await Data.Samples;
+        _model = await Data.Model;
+        _metrics = await Data.Metrics;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Runs once, after the samples have loaded (the first render happens before that).
+        if (_autoRunDone || _samples.Length == 0 || _editor is null) return;
+        _autoRunDone = true;
+        if (SampleNumber is not int n || n < 1 || n > _samples.Length) return;
+        await _editor.Ready;
+        await OnSampleAsync(_samples[n - 1]);
+        await MeasureAsync();
+        StateHasChanged();
+    }
+
+    private void Go(Step step) => _step = step;
+
+    private async Task OnFileAsync(ElementReference input)
+    {
+        _error = null;
+        try
+        {
+            if (!await _editor!.LoadFromInputAsync(input)) return;
+        }
+        catch (JSException ex)
+        {
+            _error = ex.Message;
+            return;
+        }
+        _sample = null;
+        _maskCount = 0;
+        _wand = null;
+        var found = await _editor.AutoDetectCardAsync();
+        if (found is { } f)
+        {
+            OnCardPicked(f);
+            _cardAuto = true;
+            _cardMissed = false;
+            await ToPaintAsync();
+        }
+        else
+        {
+            _card = null;
+            _cardAuto = false;
+            _cardMissed = true;
+            _step = Step.Card;
+            await _editor.SetModeAsync("card");
+        }
+    }
+
+    private async Task OnSampleAsync(Sample s)
+    {
+        _shots.Clear();
+        _sample = s;
+        _card = null;
+        _cardAuto = false;
+        _maskCount = await _editor!.LoadSampleAsync(s.File);
+        _step = Step.Paint;
+        await _editor.SetModeAsync("move");
+    }
+
+    private void OnCardPicked((Rgb White, double Unevenness) pick)
+    {
+        _card = pick.White;
+        _cardUneven = pick.Unevenness > 12;
+        _cardAuto = false;
+    }
+
+    private async Task ChangeCardAsync()
+    {
+        _step = Step.Card;
+        _cardMissed = false;
+        await _editor!.SetModeAsync("card");
+    }
+
+    private async Task SkipCardAsync()
+    {
+        _card = null;
+        await ToPaintAsync();
+    }
+
+    private async Task ToPaintAsync()
+    {
+        _step = Step.Paint;
+        await _editor!.SetModeAsync(_maskCount > 0 ? "move" : "wand");
+    }
+
+    private async Task BackFromEditor()
+    {
+        if (_step == Step.Paint && _sample is null)
+        {
+            _step = Step.Card;
+            await _editor!.SetModeAsync("card");
+        }
+        else
+        {
+            _step = Step.Photo;
+        }
+    }
+
+    private async Task MeasureAsync()
+    {
+        _busy = true;
+        try
+        {
+            var pixels = await _editor!.GetOutlinedPixelsAsync();
+            _last = Analyzer.Analyze(pixels, _model!, _card);
+            if (_last.Measured) _shots.Add(_last);
+            _saved = false;
+            _step = Step.Result;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void AddPhoto()
+    {
+        _maskCount = 0;
+        _wand = null;
+        _step = Step.Photo;
+    }
+
+    private void Toggle(string key, ChangeEventArgs e)
+    {
+        if (e.Value is true) _symptoms.Add(key);
+        else _symptoms.Remove(key);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_shots.Count == 0) return;
+        double p = Average;
+        _saved = await History.AddAsync(new HistoryEntry(Guid.NewGuid().ToString("N"), DateTimeOffset.Now,
+            Index(p), _model!.BandFor(p), p, _shots.Average(s => s.CorrectedAStar), _shots.Average(s => s.CorrectedLStar),
+            _shots.All(s => !s.Issues.Contains(QualityIssue.NoCard)), Photos: _shots.Count));
+    }
+
+    private void Restart()
+    {
+        _last = null;
+        _sample = null;
+        _card = null;
+        _cardAuto = false;
+        _maskCount = 0;
+        _shots.Clear();
+        _symptoms.Clear();
+        _step = Step.Photo;
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+    public void Dispose() => L.Changed -= Refresh;
+}

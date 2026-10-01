@@ -1,0 +1,56 @@
+﻿@page "/"
+@implements IDisposable
+@inject Lang L
+@inject AppData Data
+
+<PageTitle>PaleCheck</PageTitle>
+
+<section class="hero">
+    <p class="kicker">@L["home.kicker"]</p>
+    <h1>@L["home.title"]</h1>
+    <p class="lede">@L["home.lede"]</p>
+    <div class="actions">
+        <a class="btn primary" href="check">@L["home.start"]</a>
+        <a class="btn" href="check?sample=@_sample">⚡ @L["home.tryNow"]</a>
+        <a class="btn ghost" href="science">@L["home.science"]</a>
+    </div>
+</section>
+
+<section class="stats" aria-label="Key numbers">
+    <div class="stat">
+        <b>59.1%</b>
+        <span>@L["home.stat1"]</span>
+    </div>
+    <div class="stat">
+        <b>@(_m is null ? "…" : (_m.Audit.ShareUnreliable * 100).ToString("0") + "%")</b>
+        <span>@L["home.stat2"]</span>
+    </div>
+    <div class="stat">
+        <b>@(_m is null ? "…" : _m.Lighting.Illuminants[0].TimesDiseaseGap.ToString("0.#") + "×")</b>
+        <span>@L["home.stat3"]</span>
+    </div>
+</section>
+
+<section class="panel">
+    <h2>@L["home.how"]</h2>
+    <ol class="how">
+        <li><a href="card">@L["home.how1"]</a></li>
+        <li>@L["home.how2"]</li>
+        <li>@L["home.how3"]</li>
+    </ol>
+    <p class="note">🔒 @L["home.private"]</p>
+</section>
+
+@code {
+    private Metrics? _m;
+    private readonly int _sample = Random.Shared.Next(1, 9);
+
+    protected override async Task OnInitializedAsync()
+    {
+        L.Changed += Refresh;
+        _m = await Data.Metrics;
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+    public void Dispose() => L.Changed -= Refresh;
+}

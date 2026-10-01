@@ -1,0 +1,22 @@
+{
+  "name": "PaleCheck — eyelid pallor check",
+  "short_name": "PaleCheck",
+  "id": "./",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fbf7f5",
+  "theme_color": "#b4234b",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ]
+}

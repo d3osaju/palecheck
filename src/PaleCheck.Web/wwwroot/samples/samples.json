@@ -1,0 +1,50 @@
+[
+  {
+    "file": "samples/sample-1.png",
+    "sourceId": "Image_094",
+    "hb": 10.2,
+    "anaemic": true
+  },
+  {
+    "file": "samples/sample-2.png",
+    "sourceId": "Image_120",
+    "hb": 7.3,
+    "anaemic": true
+  },
+  {
+    "file": "samples/sample-3.png",
+    "sourceId": "Image_398",
+    "hb": 10.2,
+    "anaemic": true
+  },
+  {
+    "file": "samples/sample-4.png",
+    "sourceId": "Image_461",
+    "hb": 9.2,
+    "anaemic": true
+  },
+  {
+    "file": "samples/sample-5.png",
+    "sourceId": "Image_004",
+    "hb": 12.5,
+    "anaemic": false
+  },
+  {
+    "file": "samples/sample-6.png",
+    "sourceId": "Image_130",
+    "hb": 12.0,
+    "anaemic": false
+  },
+  {
+    "file": "samples/sample-7.png",
+    "sourceId": "Image_394",
+    "hb": 12.8,
+    "anaemic": false
+  },
+  {
+    "file": "samples/sample-8.png",
+    "sourceId": "Image_570",
+    "hb": 12.1,
+    "anaemic": false
+  }
+]

@@ -1,0 +1,52 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject Lang L
+
+<header class="site-header no-print">
+    <div class="wrap header-row">
+        <a class="brand" href="">
+            <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16c4-7 9-10 13-10s9 3 13 10c-4 7-9 10-13 10S7 23 3 16z" class="eye"/><path d="M8 19.5c2.5 2.6 5.2 3.8 8 3.8s5.5-1.2 8-3.8" class="lid"/><circle cx="16" cy="14.5" r="4" class="iris"/></svg>
+            PaleCheck
+        </a>
+        <select class="lang" aria-label="Language" value="@L.Current" @onchange="OnLang">
+            @foreach (var (langCode, name) in Lang.Languages)
+            {
+                <option value="@langCode">@name</option>
+            }
+        </select>
+    </div>
+    <nav class="wrap nav" aria-label="Main">
+        <NavLink href="" Match="NavLinkMatch.All">@L["nav.home"]</NavLink>
+        <NavLink href="check">@L["nav.check"]</NavLink>
+        <NavLink href="lab">@L["nav.lab"]</NavLink>
+        <NavLink href="science">@L["nav.science"]</NavLink>
+        <NavLink href="card">@L["nav.card"]</NavLink>
+        <NavLink href="history">@L["nav.history"]</NavLink>
+    </nav>
+</header>
+
+<main class="wrap">
+    @Body
+</main>
+
+<footer class="site-footer no-print">
+    <div class="wrap">
+        <p><strong>@L["disclaimer"]</strong></p>
+        <p class="muted">Model trained on the CP-AnemiC dataset (Appiahene et al., CC BY 4.0). Runs offline; photos never leave your device.</p>
+        <p class="muted"><a href="dupescope">DupeScope</a> · <a href="science#protocol">Data protocol</a> · <a href="https://github.com/d3osaju/palecheck" target="_blank" rel="noopener">Source code</a></p>
+    </div>
+</footer>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        L.Changed += Refresh;
+        await L.InitAsync();
+    }
+
+    private async Task OnLang(ChangeEventArgs e) => await L.SetAsync(e.Value?.ToString() ?? "en");
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => L.Changed -= Refresh;
+}

@@ -1,0 +1,10 @@
+bin/
+obj/
+/out/
+/dist/
+.vercel/
+.vs/
+*.user
+data/raw/
+__pycache__/
+*.pyc

@@ -1,0 +1,144 @@
+@using PaleCheck.Core
+@implements IAsyncDisposable
+@inject Js Js
+@inject Lang L
+
+<div class="editor @(HasImage ? "" : "empty")">
+    <div class="toolbar" role="toolbar">
+        <div class="seg">
+            <button type="button" class="@Active("move")" @onclick='() => SetModeAsync("move")'>@L["tool.move"]</button>
+            @if (ShowCardTool)
+            {
+                <button type="button" class="@Active("card")" @onclick='() => SetModeAsync("card")'>@L["tool.card"]</button>
+            }
+            <button type="button" class="@Active("wand")" @onclick='() => SetModeAsync("wand")'>✨ @L["tool.wand"]</button>
+            <button type="button" class="@Active("paint")" @onclick='() => SetModeAsync("paint")'>@L["tool.paint"]</button>
+            <button type="button" class="@Active("erase")" @onclick='() => SetModeAsync("erase")'>@L["tool.erase"]</button>
+        </div>
+        @if (Mode == "wand")
+        {
+            <label class="slider">@L["tool.tolerance"]
+                <input type="range" min="4" max="40" step="1" value="@_tolerance" @oninput="OnTolerance" />
+            </label>
+        }
+        else
+        {
+            <label class="slider">@L["tool.brush"]
+                <input type="range" min="0.005" max="0.08" step="0.005" value="@_brush" @oninput="OnBrush" />
+            </label>
+        }
+        <label class="slider">@L["tool.zoom"]
+            <input type="range" min="1" max="4" step="0.25" value="@_zoom" @oninput="OnZoom" />
+        </label>
+        <button type="button" class="ghost" @onclick="ClearAsync">@L["tool.clear"]</button>
+    </div>
+    <div class="stage" id="@_id">
+        <canvas class="photo"></canvas>
+        <canvas class="overlay"></canvas>
+    </div>
+</div>
+
+@code {
+    [Parameter] public bool ShowCardTool { get; set; } = true;
+    [Parameter] public EventCallback<(Rgb White, double Unevenness)> CardPicked { get; set; }
+    [Parameter] public EventCallback<int> MaskChanged { get; set; }
+    /// <summary>"ok", "nothing" or "too-large" after each magic-wand tap.</summary>
+    [Parameter] public EventCallback<string> WandResult { get; set; }
+
+    public bool HasImage { get; private set; }
+    public string Mode { get; private set; } = "move";
+
+    /// <summary>Completes once the canvas module is initialised.</summary>
+    public Task Ready => _ready.Task;
+    private readonly TaskCompletionSource _ready = new();
+
+    private readonly string _id = "eye-" + Guid.NewGuid().ToString("N")[..8];
+    private DotNetObjectReference<EyeEditor>? _ref;
+    private double _brush = 0.02, _zoom = 1, _tolerance = 16;
+
+    private record CardSample(double R, double G, double B, double Sd);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _ref = DotNetObjectReference.Create(this);
+        await Js.InvokeVoidAsync("init", _id, _ref);
+        _ready.TrySetResult();
+    }
+
+    private string Active(string mode) => Mode == mode ? "on" : "";
+
+    public async Task SetModeAsync(string mode)
+    {
+        Mode = mode;
+        await Js.InvokeVoidAsync("setMode", _id, mode);
+        StateHasChanged();
+    }
+
+    public async Task<bool> LoadFromInputAsync(ElementReference input)
+    {
+        var size = await Js.InvokeAsync<object?>("loadFromInput", _id, input);
+        HasImage = size is not null;
+        StateHasChanged();
+        return HasImage;
+    }
+
+    /// <summary>Loads a pre-outlined research sample; returns the outlined pixel count.</summary>
+    public async Task<int> LoadSampleAsync(string url)
+    {
+        var count = await Js.InvokeAsync<int>("loadSample", _id, url);
+        HasImage = true;
+        StateHasChanged();
+        return count;
+    }
+
+    public async Task<byte[]> GetOutlinedPixelsAsync() => await Js.InvokeAsync<byte[]>("getOutlinedPixels", _id);
+
+    /// <summary>Looks for the framed white card in the photo; null if none is found.</summary>
+    public async Task<(Rgb White, double Unevenness)?> AutoDetectCardAsync()
+    {
+        var c = await Js.InvokeAsync<CardSample?>("autoDetectCard", _id);
+        return c is null ? null : (new Rgb(c.R, c.G, c.B), c.Sd);
+    }
+
+    private async Task OnTolerance(ChangeEventArgs e)
+    {
+        _tolerance = double.Parse(e.Value!.ToString()!, System.Globalization.CultureInfo.InvariantCulture);
+        await Js.InvokeVoidAsync("setTolerance", _id, _tolerance);
+    }
+
+    [JSInvokable]
+    public Task OnWand(string status) => InvokeAsync(() => WandResult.InvokeAsync(status));
+
+    private async Task ClearAsync()
+    {
+        await Js.InvokeAsync<int>("clearMask", _id);
+        await MaskChanged.InvokeAsync(0);
+    }
+
+    private async Task OnBrush(ChangeEventArgs e)
+    {
+        _brush = double.Parse(e.Value!.ToString()!, System.Globalization.CultureInfo.InvariantCulture);
+        await Js.InvokeVoidAsync("setBrush", _id, _brush);
+    }
+
+    private async Task OnZoom(ChangeEventArgs e)
+    {
+        _zoom = double.Parse(e.Value!.ToString()!, System.Globalization.CultureInfo.InvariantCulture);
+        await Js.InvokeVoidAsync("setZoom", _id, _zoom);
+    }
+
+    [JSInvokable]
+    public Task OnCardPicked(double r, double g, double b, double unevenness) =>
+        InvokeAsync(() => CardPicked.InvokeAsync((new Rgb(r, g, b), unevenness)));
+
+    [JSInvokable]
+    public Task OnMaskChanged(int count) => InvokeAsync(() => MaskChanged.InvokeAsync(count));
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await Js.InvokeVoidAsync("dispose", _id); }
+        catch (JSDisconnectedException) { }
+        _ref?.Dispose();
+    }
+}

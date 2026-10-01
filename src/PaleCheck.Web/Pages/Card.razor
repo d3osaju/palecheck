@@ -1,0 +1,39 @@
+@page "/card"
+@implements IDisposable
+@inject Lang L
+@inject Js Js
+
+<PageTitle>@L["cardpage.title"] · PaleCheck</PageTitle>
+
+<div class="no-print">
+    <h1>@L["cardpage.title"]</h1>
+    <p class="lede">@L["cardpage.body"]</p>
+    <ul class="small">
+        <li>Keep it flat, clean and dry. Replace it if it yellows or gets stained.</li>
+        <li>Matte office paper is best; avoid glossy photo paper (it reflects glare).</li>
+        <li>Tap the large white square — not the border — when PaleCheck asks for the card.</li>
+    </ul>
+    <div class="actions"><button class="btn primary" @onclick='async () => await Js.InvokeVoidAsync("print")'>🖨️ @L["cardpage.print"]</button></div>
+</div>
+
+<div class="card-sheet">
+    @for (int i = 0; i < 8; i++)
+    {
+        <div class="ref-card">
+            <div class="ref-white"></div>
+            <div class="ref-side">
+                <strong>PaleCheck</strong>
+                <img src="img/qr.svg" alt="QR code: palecheck.zetalabs.in" />
+                <span>scan to open</span>
+                <span class="ref-scale"><i></i><i></i><i></i></span>
+                <span>keep flat &amp; clean</span>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => L.Changed += Refresh;
+    private void Refresh() => InvokeAsync(StateHasChanged);
+    public void Dispose() => L.Changed -= Refresh;
+}

@@ -1,0 +1,29 @@
+@* Pallor index over time for one person. *@
+@{
+    const double W = 340, H = 140, Pad = 26;
+    var pts = Entries.OrderBy(e => e.When).ToList();
+    double t0 = pts[0].When.ToUnixTimeSeconds(), t1 = Math.Max(t0 + 1, pts[^1].When.ToUnixTimeSeconds());
+    double X(DateTimeOffset t) => Pad + (t.ToUnixTimeSeconds() - t0) / (t1 - t0) * (W - 2 * Pad);
+    double Y(int v) => H - Pad - v / 100.0 * (H - 2 * Pad);
+    var line = string.Join(" ", pts.Select(p => $"{X(p.When):0.#},{Y(p.PallorIndex):0.#}"));
+}
+<figure class="chart">
+    <svg viewBox="0 0 @W @H" role="img" aria-label="Pallor index over time">
+        <line x1="@Pad" y1="@Y(50)" x2="@(W - Pad)" y2="@Y(50)" class="grid" />
+        <line x1="@Pad" y1="@(H - Pad)" x2="@(W - Pad)" y2="@(H - Pad)" class="axis" />
+        <polyline points="@line" class="curve" />
+        @foreach (var p in pts)
+        {
+            <circle cx="@X(p.When)" cy="@Y(p.PallorIndex)" r="4" class="op" />
+        }
+        <text x="4" y="@(Y(100) + 4)" class="tick">100</text>
+        <text x="4" y="@(Y(50) + 4)" class="tick">50</text>
+        <text x="4" y="@(Y(0) + 4)" class="tick">0</text>
+        <text x="@Pad" y="@(H - 6)" class="tick">@pts[0].When.ToLocalTime().ToString("d MMM")</text>
+        <text x="@(W - Pad)" y="@(H - 6)" text-anchor="end" class="tick">@pts[^1].When.ToLocalTime().ToString("d MMM")</text>
+    </svg>
+</figure>
+
+@code {
+    [Parameter, EditorRequired] public List<HistoryEntry> Entries { get; set; } = [];
+}

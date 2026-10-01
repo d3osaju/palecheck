@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PaleCheck.Core/PaleCheck.Core.csproj" />
+    <Project Path="src/PaleCheck.Web/PaleCheck.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PaleCheck.Core.Tests/PaleCheck.Core.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,204 @@
+@page "/dupescope"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<PageTitle>DupeScope · PaleCheck</PageTitle>
+
+<p class="kicker">Research tool</p>
+<h1>DupeScope: check an image dataset before you trust it</h1>
+<p class="lede">
+    PaleCheck's biggest finding was that nearly half of a public medical dataset was the same photos filed under different
+    patients. DupeScope finds that problem in <em>any</em> image dataset, in seconds, without uploading anything. Run on that
+    dataset, it also caught re-cropped copies that exact matching had missed.
+</p>
+
+<section class="panel">
+    <ol class="how small">
+        <li>Choose the dataset folder (all sub-folders are included) or select image files.</li>
+        <li>Optional: add the dataset's metadata as a <strong>CSV</strong> file (export spreadsheets to CSV first). DupeScope
+            finds the column that matches the file names and shows each copy's record.</li>
+        <li>Press <em>Scan</em>. Everything happens in this browser.</li>
+    </ol>
+    <div class="form-grid">
+        <label class="btn">📁 Folder
+            <input type="file" webkitdirectory multiple hidden @ref="_folder" @onchange="() => Picked(_folder)" />
+        </label>
+        <label class="btn">🖼️ Files
+            <input type="file" accept="image/*" multiple hidden @ref="_files" @onchange="() => Picked(_files)" />
+        </label>
+        <label class="btn ghost">📄 Metadata CSV
+            <input type="file" accept=".csv,text/csv" hidden @ref="_csv" @onchange="() => _csvChosen = true" />
+        </label>
+        <button class="btn primary" disabled="@(_source is null || _scanning)" @onclick="ScanAsync">Scan</button>
+    </div>
+    <p class="small muted">
+        @(_source is null ? "No images chosen." : "Images chosen.") @(_csvChosen ? "Metadata CSV chosen." : "")
+        @if (_scanning)
+        {
+            <span> Scanning @_done / @_total…</span>
+        }
+    </p>
+    @if (_scanning && _total > 0)
+    {
+        <progress max="@_total" value="@_done"></progress>
+    }
+    @if (_error is not null)
+    {
+        <p class="issue block">@_error</p>
+    }
+</section>
+
+@if (_result is not null)
+{
+    <section class="panel">
+        <h2>Result</h2>
+        <div class="stats compact">
+            <div class="stat"><b>@_result.Total</b><span>images read@(_result.Failed.Length > 0 ? $" ({_result.Failed.Length} unreadable)" : "")</span></div>
+            <div class="stat"><b>@Pct(_result.InExactGroups)</b><span>@_result.InExactGroups images in @_result.ExactGroups groups of pixel-identical copies</span></div>
+            <div class="stat"><b>@Pct(_result.InNearGroups)</b><span>@_result.InNearGroups images in @_result.NearGroups groups of near-identical copies</span></div>
+        </div>
+        @if (_result.IdColumn is not null)
+        {
+            <p class="small">Matched metadata on column <code>@_result.IdColumn</code>.
+                <strong>@_result.Groups.Count(g => g.Conflicting)</strong> groups have copies whose records disagree.</p>
+        }
+        else if (_csvChosen)
+        {
+            <p class="issue">No CSV column matched the image file names.</p>
+        }
+        @if (_result.Groups.Count == 0)
+        {
+            <p class="callout">✅ No duplicate images found.</p>
+        }
+        else
+        {
+            <div class="actions"><button class="btn" @onclick="ExportAsync">Export groups CSV</button></div>
+        }
+    </section>
+
+    @foreach (var (g, gi) in _result.Groups.Take(_shown).Select((g, i) => (g, i)))
+    {
+        <section class="panel dupe-group @(g.Conflicting ? "conflict" : "")">
+            <h3>
+                Group @(gi + 1) · @g.Members.Length @(g.Kind == "exact" ? "identical" : "near-identical") images
+                @if (g.Conflicting)
+                {
+                    <span class="tag">records disagree</span>
+                }
+            </h3>
+            <div class="thumbs">
+                @foreach (var m in g.Members.Take(12))
+                {
+                    <figure>
+                        <img src="@m.Thumb" alt="@m.Name" loading="lazy" />
+                        <figcaption>@m.Name</figcaption>
+                    </figure>
+                }
+            </div>
+            @if (_result.Header is not null && g.Members.Any(m => m.Meta is not null))
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>File</th>@foreach (var h in _result.Header.Take(8)) { <th>@h</th> }</tr></thead>
+                        <tbody>
+                        @foreach (var m in g.Members)
+                        {
+                            <tr><td>@m.Name</td>@foreach (var v in (m.Meta ?? []).Take(8)) { <td>@v</td> }</tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+    @if (_result.Groups.Count > _shown)
+    {
+        <div class="actions"><button class="btn" @onclick="() => _shown += 20">Show 20 more groups</button></div>
+    }
+}
+
+<section class="panel small">
+    <h2>How it works</h2>
+    <ul>
+        <li><strong>Identical:</strong> each image is decoded and its pixels (plus size) are hashed with SHA-256, so renamed or
+            re-saved copies of the same picture still match.</li>
+        <li><strong>Near-identical:</strong> a 64-bit difference hash (9×8 thumbnail) within 2 bits and mean colour within 3
+            levels: catches resized or re-compressed copies. Review these by eye.</li>
+        <li>Duplicates are not always errors (augmented data, repeat visits), but a copy listed as a different patient, or one
+            that sits in both the training and test split, silently inflates accuracy.</li>
+    </ul>
+</section>
+
+@code {
+    private record Member(string Name, string Thumb, int Width, int Height, string[]? Meta);
+    private record Group(string Kind, Member[] Members, bool Conflicting);
+    private record ScanResult(int Total, string[] Failed, int InExactGroups, int ExactGroups, int InNearGroups,
+        int NearGroups, string[]? Header, string? IdColumn, List<Group> Groups);
+
+    private ElementReference _folder, _files, _csv;
+    private ElementReference? _source;
+    private bool _csvChosen, _scanning;
+    private int _done, _total, _shown = 20;
+    private string? _error;
+    private ScanResult? _result;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<DupeScope>? _ref;
+
+    private void Picked(ElementReference input) => _source = input;
+
+    private string Pct(int n) => _result is null || _result.Total == 0 ? "0%" : (100.0 * n / _result.Total).ToString("0.#") + "%";
+
+    private async Task ScanAsync()
+    {
+        _error = null;
+        _scanning = true;
+        _done = _total = 0;
+        _shown = 20;
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/dupescope.js");
+            _ref ??= DotNetObjectReference.Create(this);
+            _result = await _module.InvokeAsync<ScanResult>("scan", TimeSpan.FromMinutes(30), _source!.Value, _csv, _ref);
+        }
+        catch (JSException ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _scanning = false;
+        }
+    }
+
+    [JSInvokable]
+    public Task OnProgress(int done, int total) => InvokeAsync(() =>
+    {
+        _done = done;
+        _total = total;
+        StateHasChanged();
+    });
+
+    private async Task ExportAsync()
+    {
+        static string Q(string? s) => "\"" + (s ?? "").Replace("\"", "\"\"") + "\"";
+        var lines = new List<string> { "group,kind,records_disagree,file," + string.Join(',', (_result!.Header ?? []).Select(Q)) };
+        for (int i = 0; i < _result.Groups.Count; i++)
+        {
+            var g = _result.Groups[i];
+            foreach (var m in g.Members)
+                lines.Add($"{i + 1},{g.Kind},{(g.Conflicting ? "yes" : "no")},{Q(m.Name)}," + string.Join(',', (m.Meta ?? []).Select(Q)));
+        }
+        var palecheck = await JS.InvokeAsync<IJSObjectReference>("import", "./js/palecheck.js");
+        await palecheck.InvokeVoidAsync("downloadText", "dupescope-groups.csv", string.Join('\n', lines) + "\n", "text/csv");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _ref?.Dispose();
+        if (_module is not null)
+        {
+            try { await _module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+    }
+}

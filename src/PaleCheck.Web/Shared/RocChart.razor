@@ -1,0 +1,29 @@
+@* ROC curve: false-positive rate (x) vs sensitivity (y), with the coin-flip diagonal. *@
+@{
+    const double S = 240, Pad = 30;
+    double X(double v) => Pad + v * (S - Pad - 8);
+    double Y(double v) => S - Pad - v * (S - Pad - 8);
+    var pts = string.Join(" ", Points.Select(p => $"{X(p[0]):0.#},{Y(p[1]):0.#}"));
+}
+<figure class="chart roc">
+    <svg viewBox="0 0 @S @S" role="img" aria-label="ROC curve, AUC @Auc.ToString("0.00")">
+        <rect x="@X(0)" y="@Y(1)" width="@(X(1) - X(0))" height="@(Y(0) - Y(1))" class="frame" />
+        <line x1="@X(0)" y1="@Y(0)" x2="@X(1)" y2="@Y(1)" class="diag" />
+        <polyline points="@pts" class="curve" />
+        @foreach (var op in Operating)
+        {
+            <circle cx="@X(1 - op.Specificity)" cy="@Y(op.Sensitivity)" r="4" class="op" />
+        }
+        <text x="@((X(0) + X(1)) / 2)" y="@(S - 6)" text-anchor="middle" class="tick">healthy eyes wrongly flagged →</text>
+        <text transform="translate(11 @((Y(0) + Y(1)) / 2)) rotate(-90)" text-anchor="middle" class="tick">anaemic eyes caught →</text>
+        <text x="@X(0.97)" y="@Y(0.06)" text-anchor="end" class="label">AUC @Auc.ToString("0.00") @Label</text>
+        <text x="@X(0.62)" y="@Y(0.52)" class="tick muted">coin flip</text>
+    </svg>
+</figure>
+
+@code {
+    [Parameter, EditorRequired] public double[][] Points { get; set; } = [];
+    [Parameter] public double Auc { get; set; }
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public IEnumerable<PaleCheck.Web.Services.Confusion> Operating { get; set; } = [];
+}

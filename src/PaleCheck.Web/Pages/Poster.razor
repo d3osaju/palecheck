@@ -1,0 +1,96 @@
+﻿@page "/poster"
+@page "/poster/{Variant}"
+@layout BareLayout
+@inject AppData Data
+
+@* Social-preview and Devpost gallery images, rendered from the live metrics and screenshotted
+   by tools/render-posters.ps1. Sized in vw/vh so one page renders at any image size. *@
+
+<PageTitle>PaleCheck poster</PageTitle>
+
+@if (_m is null || _model is null)
+{
+    return;
+}
+
+<div class="poster">
+    <div class="poster-brand">
+        <img src="icon-192.png" alt="" />
+        <span>PaleCheck</span>
+        <em>palecheck.zetalabs.in</em>
+    </div>
+
+    @switch (Variant)
+    {
+        case "audit":
+            <div class="poster-split">
+                <div class="poster-photo">
+                    <img src="science/duplicate-example.png" alt="" />
+                    <p>1 photo · @_m.Audit.LargestGroup patient records</p>
+                </div>
+                <div>
+                    <p class="poster-kicker">Finding 1 · the data</p>
+                    <h1>@((_m.Audit.ShareUnreliable * 100).ToString("0"))% of the largest public eyelid dataset is reused photos.</h1>
+                    <p class="poster-body">The same image is filed as different children, with haemoglobin from
+                        @_m.Audit.Example.Min(e => e.Hb).ToString("0.0") to @_m.Audit.Example.Max(e => e.Hb).ToString("0.0") g/dL.
+                        A model that only memorises photos scores <b>@((_m.Audit.MemoriserAccuracy * 100).ToString("0"))%</b>.</p>
+                </div>
+            </div>
+            break;
+
+        case "lighting":
+            <p class="poster-kicker">Finding 2 · the light</p>
+            <h1>A yellow bulb shifts eyelid redness @_m.Lighting.Illuminants[0].TimesDiseaseGap.ToString("0.#")× more than anaemia does.</h1>
+            <div class="poster-swatches">
+                @foreach (var il in _m.Lighting.Illuminants.Reverse())
+                {
+                    <div>
+                        <span style="background: rgb(@il.CardWhiteRgb[0], @il.CardWhiteRgb[1], @il.CardWhiteRgb[2])"></span>
+                        <b>@il.Kelvin K</b>
+                        <small>+@il.ShiftUncorrected.ToString("0.0") a*</small>
+                    </div>
+                }
+            </div>
+            <p class="poster-body">How a white card photographs under each light. Because the card shares the light, PaleCheck
+                divides it out — a ₹1 fix for the biggest error in phone colour measurement.</p>
+            break;
+
+        case "honest":
+            <div class="poster-split">
+                <div>
+                    <p class="poster-kicker">The honest number</p>
+                    <h1>AUC @_m.Lockbox.Auc.ToString("0.00") on a lockbox opened once.</h1>
+                    <p class="poster-body">Healthy and anaemic eyelids overlap. PaleCheck shows where you sit, says when a photo
+                        can't decide, and sends you to a free blood test.</p>
+                </div>
+                <div class="poster-chart">
+                    <DistributionChart Healthy="_model.Reference.HealthyHistogram" Anaemic="_model.Reference.AnaemicHistogram"
+                                       HealthyLabel="Healthy (Hb ≥ 11)" AnaemicLabel="Anaemic (Hb < 11)" />
+                </div>
+            </div>
+            break;
+
+        default:
+            <p class="poster-kicker">Anaemia screening, honestly</p>
+            <h1>Your eyelid. A ₹1 card. The truth about phone anaemia checks.</h1>
+            <div class="poster-stats">
+                <div><b>59.1%</b><span>of Indian girls 15–19 are anaemic</span></div>
+                <div><b>@((_m.Audit.ShareUnreliable * 100).ToString("0"))%</b><span>of the benchmark dataset is reused photos</span></div>
+                <div><b>@_m.Lighting.Illuminants[0].TimesDiseaseGap.ToString("0.#")×</b><span>bigger effect from a bulb than from anaemia</span></div>
+            </div>
+            break;
+    }
+</div>
+
+@code {
+    [Parameter] public string? Variant { get; set; }
+
+    private Metrics? _m;
+    private PallorModel? _model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _m = await Data.Metrics;
+        _model = await Data.Model;
+    }
+}

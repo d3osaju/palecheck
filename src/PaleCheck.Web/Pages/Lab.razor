@@ -1,0 +1,187 @@
+@page "/lab"
+@inject AppData Data
+@inject Js Js
+
+<PageTitle>Lighting Lab · PaleCheck</PageTitle>
+
+<h1>Lighting Lab</h1>
+<p class="lede">
+    Is it the blood, or the bulb? Photograph the <em>same</em> target — your inner eyelid, or any red object such as a
+    sticker or lipstick swatch — with the white card beside it, under three or more different lights (daylight,
+    tube light, yellow bulb). PaleCheck measures redness (CIELAB a*) before and after the card correction.
+</p>
+
+@if (_metrics is not null)
+{
+    <details class="panel" open="@(_shots.Count == 0)">
+        <summary><strong>What the simulation predicts</strong></summary>
+        <p class="small muted">
+            Re-lighting all @(_metrics.Dataset.Anaemic + _metrics.Dataset.Healthy) reference eyelids with physically modelled
+            (blackbody) lights, camera auto white balance off. For scale: healthy and anaemic eyes differ by only
+            <strong>@_metrics.Lighting.DiseaseGap.ToString("0.0") a* units</strong> on average.
+        </p>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Light</th><th>Card looks like</th><th>a* shift, no card</th><th>× anaemia gap</th><th>a* shift, with card</th></tr></thead>
+                <tbody>
+                @foreach (var il in _metrics.Lighting.Illuminants)
+                {
+                    <tr>
+                        <td>@il.Kelvin K</td>
+                        <td><span class="swatch" style="background: rgb(@il.CardWhiteRgb[0], @il.CardWhiteRgb[1], @il.CardWhiteRgb[2])"></span></td>
+                        <td>+@il.ShiftUncorrected.ToString("0.0")</td>
+                        <td><strong>@il.TimesDiseaseGap.ToString("0.0")×</strong></td>
+                        <td>@Math.Abs(il.ShiftWithCard).ToString("0.0")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <p class="small muted">In the simulation the card removes the shift exactly by construction. Real cameras add noise and their own processing — that is what this lab measures.</p>
+    </details>
+}
+
+<section class="panel">
+    <h2>Add a shot</h2>
+    <ol class="how small">
+        <li>Take a photo with the card and the target in the same light.</li>
+        <li>PaleCheck finds the card itself (or tap it with <em>Card</em>); tap the target with <em>Smart select</em>.</li>
+        <li>Name the light and press <em>Add shot</em>. Repeat under other lights.</li>
+    </ol>
+    <div class="actions">
+        <label class="btn primary">📷 Photo
+            <input type="file" accept="image/*" capture="environment" hidden @ref="_camera" @onchange="() => LoadAsync(_camera)" />
+        </label>
+        <label class="btn">🖼️ Gallery
+            <input type="file" accept="image/*" hidden @ref="_gallery" @onchange="() => LoadAsync(_gallery)" />
+        </label>
+    </div>
+
+    <EyeEditor @ref="_editor" CardPicked="p => _card = p.White" MaskChanged="c => _mask = c" />
+
+    <div class="form-row">
+        <label>Light
+            <input list="lights" @bind="_light" placeholder="e.g. Yellow bulb" />
+            <datalist id="lights">
+                <option value="Daylight (window)"></option>
+                <option value="Tube light"></option>
+                <option value="White LED"></option>
+                <option value="Yellow bulb"></option>
+                <option value="Phone torch"></option>
+            </datalist>
+        </label>
+        <span class="small muted">Card: @(_card is null ? "not tapped" : $"RGB {(int)_card.R}, {(int)_card.G}, {(int)_card.B}") · Target: @(_mask > 0 ? "painted" : "not painted")</span>
+        <button class="btn primary" disabled="@(_card is null || _mask == 0 || string.IsNullOrWhiteSpace(_light))" @onclick="AddAsync">Add shot</button>
+    </div>
+    @if (_error is not null)
+    {
+        <p class="issue block">@_error</p>
+    }
+</section>
+
+@if (_shots.Count > 0 && _metrics is not null)
+{
+    var (raw, corrected) = Analyzer.LightingSpread(_shots.Select(s => s.Result));
+    var gap = _metrics.Lighting.DiseaseGap;
+    <section class="panel">
+        <h2>Results</h2>
+        @if (_shots.Count >= 2)
+        {
+            <div class="stats compact">
+                <div class="stat"><b>@raw.ToString("0.0")</b><span>a* spread without card (@((raw / gap).ToString("0.0"))× the anaemia gap)</span></div>
+                <div class="stat"><b>@corrected.ToString("0.0")</b><span>a* spread with card (@((corrected / gap).ToString("0.0"))× the anaemia gap)</span></div>
+                <div class="stat"><b>@(raw > 0 ? (100 * (1 - corrected / raw)).ToString("0") + "%" : "–")</b><span>of the lighting error removed by the card</span></div>
+            </div>
+        }
+        <LabDotPlot Shots="_shots.Select(s => (s.Light, s.Result.RawAStar, s.Result.CorrectedAStar)).ToList()" Gap="gap" />
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>#</th><th>Light</th><th>Card</th><th>a* raw</th><th>a* corrected</th><th>Notes</th><th></th></tr></thead>
+                <tbody>
+                @for (int i = 0; i < _shots.Count; i++)
+                {
+                    var s = _shots[i];
+                    var idx = i;
+                    <tr>
+                        <td>@(i + 1)</td>
+                        <td>@s.Light</td>
+                        <td><span class="swatch" style="background: rgb(@((int)s.Card.R), @((int)s.Card.G), @((int)s.Card.B))"></span></td>
+                        <td>@s.Result.RawAStar.ToString("0.0")</td>
+                        <td>@s.Result.CorrectedAStar.ToString("0.0")</td>
+                        <td class="small">@string.Join("; ", s.Result.Issues.Select(q => q.ToString()))</td>
+                        <td><button class="btn ghost tiny" @onclick="() => _shots.RemoveAt(idx)">✕</button></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="actions"><button class="btn" @onclick="ExportAsync">Export CSV</button></div>
+    </section>
+}
+
+@code {
+    private record Shot(string Light, Rgb Card, AnalysisResult Result);
+
+    private readonly List<Shot> _shots = [];
+    private EyeEditor? _editor;
+    private ElementReference _camera, _gallery;
+    private Rgb? _card;
+    private int _mask;
+    private string _light = "";
+    private string? _error;
+    private Metrics? _metrics;
+    private PallorModel? _model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _metrics = await Data.Metrics;
+        _model = await Data.Model;
+    }
+
+    private async Task LoadAsync(ElementReference input)
+    {
+        _error = null;
+        try
+        {
+            if (!await _editor!.LoadFromInputAsync(input)) return;
+        }
+        catch (JSException ex)
+        {
+            _error = ex.Message;
+            return;
+        }
+        _mask = 0;
+        var found = await _editor.AutoDetectCardAsync();
+        _card = found?.White;
+        await _editor.SetModeAsync(found is null ? "card" : "wand");
+    }
+
+    private async Task AddAsync()
+    {
+        var pixels = await _editor!.GetOutlinedPixelsAsync();
+        var result = Analyzer.Analyze(pixels, _model!, _card);
+        if (!result.Measured)
+        {
+            _error = "Couldn't measure: " + string.Join(", ", result.Issues.Where(AnalysisResult.IsBlocking));
+            return;
+        }
+        _error = null;
+        _shots.Add(new Shot(_light.Trim(), _card!, result));
+        _light = "";
+    }
+
+    private async Task ExportAsync()
+    {
+        var ci = CultureInfo.InvariantCulture;
+        var lines = new List<string> { "shot,light,card_r,card_g,card_b,a_star_raw,a_star_corrected,L_star_corrected" };
+        for (int i = 0; i < _shots.Count; i++)
+        {
+            var s = _shots[i];
+            lines.Add(string.Join(',', (i + 1).ToString(ci), "\"" + s.Light.Replace("\"", "'") + "\"",
+                ((int)s.Card.R).ToString(ci), ((int)s.Card.G).ToString(ci), ((int)s.Card.B).ToString(ci),
+                s.Result.RawAStar.ToString("0.000", ci), s.Result.CorrectedAStar.ToString("0.000", ci),
+                s.Result.CorrectedLStar.ToString("0.000", ci)));
+        }
+        await Js.InvokeVoidAsync("downloadText", "palecheck-lighting-lab.csv", string.Join('\n', lines) + "\n", "text/csv");
+    }
+}

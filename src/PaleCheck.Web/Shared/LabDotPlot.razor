@@ -1,0 +1,39 @@
+@* Each shot on the a* axis: hollow = no card, filled = card-corrected. The shaded band is the
+   size of the healthy-vs-anaemic gap, for scale. *@
+@{
+    const double W = 340, Row = 26, Left = 92, Right = 14, Top = 26;
+    double H = Top + Row * Shots.Count + 26;
+    var all = Shots.SelectMany(s => new[] { s.Raw, s.Corrected }).ToList();
+    double lo = Math.Floor(all.Min() - 2), hi = Math.Ceiling(all.Max() + 2);
+    if (hi - lo < Gap * 2) hi = lo + Gap * 2;
+    double X(double v) => Left + (v - lo) / (hi - lo) * (W - Left - Right);
+    double c0 = Shots.Average(s => s.Corrected);
+}
+<figure class="chart">
+    <svg viewBox="0 0 @W @H" role="img" aria-label="Redness of each shot before and after card correction">
+        <rect x="@X(c0 - Gap / 2)" y="@(Top - 8)" width="@(X(c0 + Gap / 2) - X(c0 - Gap / 2))" height="@(Row * Shots.Count + 8)" class="gapband" />
+        <text x="@X(c0)" y="@(Top - 12)" text-anchor="middle" class="tick">anaemia gap</text>
+        @for (int i = 0; i < Shots.Count; i++)
+        {
+            var s = Shots[i];
+            var y = Top + Row * i + Row / 2;
+            <g>
+                <text x="@(Left - 8)" y="@(y + 4)" text-anchor="end" class="tick">@Trim(s.Light)</text>
+                <line x1="@X(s.Raw)" y1="@y" x2="@X(s.Corrected)" y2="@y" class="link" />
+                <circle cx="@X(s.Raw)" cy="@y" r="5" class="dot raw" />
+                <circle cx="@X(s.Corrected)" cy="@y" r="5" class="dot fixed" />
+            </g>
+        }
+        <line x1="@Left" y1="@(H - 22)" x2="@(W - Right)" y2="@(H - 22)" class="axis" />
+        <text x="@Left" y="@(H - 6)" class="tick">a* @lo.ToString("0")</text>
+        <text x="@(W - Right)" y="@(H - 6)" text-anchor="end" class="tick">@hi.ToString("0") (redder)</text>
+    </svg>
+    <figcaption><span class="key raw"></span>no card <span class="key fixed"></span>with card</figcaption>
+</figure>
+
+@code {
+    [Parameter, EditorRequired] public List<(string Light, double Raw, double Corrected)> Shots { get; set; } = [];
+    [Parameter] public double Gap { get; set; }
+
+    private static string Trim(string s) => s.Length > 14 ? s[..13] + "…" : s;
+}

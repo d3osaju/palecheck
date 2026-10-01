@@ -1,0 +1,45 @@
+@* Healthy vs anaemic reference eyes (out-of-fold scores) with an optional marker for "you". *@
+@{
+    const double W = 320, H = 150, Pad = 22;
+    int bins = Healthy.Length;
+    double bw = (W - 2 * Pad) / bins;
+    double hTotal = Math.Max(1, Healthy.Sum()), aTotal = Math.Max(1, Anaemic.Sum());
+    double max = Enumerable.Range(0, bins).Max(i => Math.Max(Healthy[i] / hTotal, Anaemic[i] / aTotal));
+    double Y(double share) => H - Pad - share / max * (H - 2 * Pad - 8);
+}
+<figure class="chart">
+    <svg viewBox="0 0 @W @H" role="img" aria-label="@Caption">
+        <line x1="@Pad" y1="@(H - Pad)" x2="@(W - Pad)" y2="@(H - Pad)" class="axis" />
+        @for (int i = 0; i < bins; i++)
+        {
+            var x = Pad + i * bw;
+            <rect x="@(x + 1)" y="@Y(Healthy[i] / hTotal)" width="@(bw / 2 - 1)" height="@(H - Pad - Y(Healthy[i] / hTotal))" class="bar healthy" />
+            <rect x="@(x + bw / 2)" y="@Y(Anaemic[i] / aTotal)" width="@(bw / 2 - 1)" height="@(H - Pad - Y(Anaemic[i] / aTotal))" class="bar anaemic" />
+        }
+        @if (Marker is double m)
+        {
+            var mx = Pad + Math.Clamp(m, 0, 1) * (W - 2 * Pad);
+            <g>
+                <line x1="@mx" y1="10" x2="@mx" y2="@(H - Pad)" class="marker" />
+                <text x="@mx" y="8" text-anchor="middle" class="marker-label">@MarkerLabel</text>
+            </g>
+        }
+        <text x="@Pad" y="@(H - 6)" class="tick">0</text>
+        <text x="@(W / 2)" y="@(H - 6)" text-anchor="middle" class="tick">50</text>
+        <text x="@(W - Pad)" y="@(H - 6)" text-anchor="end" class="tick">100</text>
+    </svg>
+    <figcaption>
+        <span class="key healthy"></span>@HealthyLabel
+        <span class="key anaemic"></span>@AnaemicLabel
+    </figcaption>
+</figure>
+
+@code {
+    [Parameter, EditorRequired] public int[] Healthy { get; set; } = [];
+    [Parameter, EditorRequired] public int[] Anaemic { get; set; } = [];
+    [Parameter] public double? Marker { get; set; }
+    [Parameter] public string MarkerLabel { get; set; } = "You";
+    [Parameter] public string HealthyLabel { get; set; } = "Healthy";
+    [Parameter] public string AnaemicLabel { get; set; } = "Anaemic";
+    [Parameter] public string Caption { get; set; } = "";
+}

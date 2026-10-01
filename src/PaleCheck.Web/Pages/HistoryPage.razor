@@ -1,0 +1,98 @@
+@page "/history"
+@implements IDisposable
+@inject Lang L
+@inject History History
+@inject Js Js
+
+<PageTitle>@L["history.title"] · PaleCheck</PageTitle>
+
+<h1>@L["history.title"]</h1>
+<p class="muted">@L["history.note"]</p>
+
+@if (_entries is null)
+{
+    <p class="muted">…</p>
+}
+else if (_entries.Count == 0)
+{
+    <section class="panel">
+        <p>@L["history.empty"]</p>
+        <a class="btn primary" href="check">@L["home.start"]</a>
+    </section>
+}
+else
+{
+    @if (_entries.Count >= 2)
+    {
+        <Trend Entries="_entries" />
+    }
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Date</th><th>@L["result.index"]</th><th></th><th>a*</th><th>@L["nav.card"]</th><th>@L["history.labHb"]</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var e in _entries)
+            {
+                <tr>
+                    <td>@e.When.ToLocalTime().ToString("d MMM yyyy, HH:mm")</td>
+                    <td><strong>@e.PallorIndex</strong></td>
+                    <td class="small">@L["band." + e.Band]</td>
+                    <td>@e.AStar.ToString("0.0")</td>
+                    <td>@(e.UsedCard ? "✓" : "–")</td>
+                    <td>
+                        <input class="hb" type="number" min="3" max="20" step="0.1" inputmode="decimal"
+                               value="@e.LabHb?.ToString("0.0", CultureInfo.InvariantCulture)"
+                               @onchange="v => SetHbAsync(e, v.Value?.ToString())" aria-label="@L["history.labHb"]" />
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="actions">
+        <button class="btn" @onclick="ExportAsync">@L["history.export"]</button>
+        @if (_confirmClear)
+        {
+            <button class="btn danger" @onclick="ClearAsync">@L["history.clear"] ✓</button>
+            <button class="btn ghost" @onclick="() => _confirmClear = false">@L["back"]</button>
+        }
+        else
+        {
+            <button class="btn ghost" @onclick="() => _confirmClear = true">@L["history.clear"]</button>
+        }
+    </div>
+    <p class="small muted">Taking part in research? Add the haemoglobin value from a lab report taken within 7 days of the check, then export. The CSV holds numbers only — no photos, no names. See the <a href="science#protocol">data protocol</a>.</p>
+}
+
+@code {
+    private List<HistoryEntry>? _entries;
+    private bool _confirmClear;
+
+    protected override async Task OnInitializedAsync()
+    {
+        L.Changed += Refresh;
+        _entries = await History.LoadAsync();
+    }
+
+    private async Task SetHbAsync(HistoryEntry entry, string? value)
+    {
+        double? hb = double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && v is >= 3 and <= 20 ? v : null;
+        var i = _entries!.FindIndex(x => x.Id == entry.Id);
+        _entries[i] = entry with { LabHb = hb, LabDate = hb is null ? null : DateTimeOffset.Now.ToString("yyyy-MM-dd") };
+        await History.SaveAsync(_entries);
+    }
+
+    private async Task ExportAsync() =>
+        await Js.InvokeVoidAsync("downloadText", "palecheck-history.csv", History.ToCsv(_entries!), "text/csv");
+
+    private async Task ClearAsync()
+    {
+        await History.ClearAsync();
+        _entries = [];
+        _confirmClear = false;
+    }
+
+    private void Refresh() => InvokeAsync(StateHasChanged);
+    public void Dispose() => L.Changed -= Refresh;
+}

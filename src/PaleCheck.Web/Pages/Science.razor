@@ -1,0 +1,306 @@
+@page "/science"
+@inject AppData Data
+
+<PageTitle>The science · PaleCheck</PageTitle>
+
+@if (_m is null || _model is null)
+{
+    <p class="muted">Loading results…</p>
+    return;
+}
+
+<p class="kicker">Research notes</p>
+<h1>We tried to build an AI that spots anaemia in an eyelid photo. Here is what we actually found.</h1>
+<p class="lede">
+    Nurses screen for anaemia by pulling down the lower eyelid and judging how pale it is. Phone apps promise to do the same
+    with AI. Before trusting any number, we audited the largest public dataset, validated honestly, and measured what room
+    lighting does to the colour. Every result below is computed by <code>model/train.py</code> and reproduced on this page.
+</p>
+
+<nav class="toc">
+    <a href="science#audit">1 · Data audit</a>
+    <a href="science#accuracy">2 · Honest accuracy</a>
+    <a href="science#lighting">3 · Lighting</a>
+    <a href="science#meaning">4 · What it means</a>
+    <a href="science#methods">5 · Methods</a>
+    <a href="science#protocol">6 · Data protocol</a>
+</nav>
+
+<section class="panel" id="audit">
+    <h2>1 · @((_m.Audit.ShareUnreliable * 100).ToString("0"))% of the benchmark is reused photos</h2>
+    <p>
+        CP-AnemiC (@_m.Audit.Images eyelid photos of children in Ghana, each with a lab haemoglobin value) is the largest public
+        dataset of its kind. Hashing every image's pixels showed that <strong>@_m.Audit.ImagesInDuplicateGroups images</strong>
+        fall into <strong>@_m.Audit.DuplicateGroups groups of identical photos</strong>. In every one of those groups, the copies
+        are listed as <em>different children</em> — different hospital, age, sex or haemoglobin.
+    </p>
+    <div class="dup">
+        <figure>
+            <img src="science/duplicate-example.png" alt="One eyelid photo that appears under @_m.Audit.LargestGroup patient records" />
+            <figcaption>One photo, @_m.Audit.LargestGroup patient records.</figcaption>
+        </figure>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Record</th><th>Hb g/dL</th><th>Age (mo)</th><th>Sex</th><th>Hospital</th></tr></thead>
+                <tbody>
+                @foreach (var r in _m.Audit.Example)
+                {
+                    <tr class="@(r.Hb < 11 ? "anaemic-row" : "")">
+                        <td>@r.Id</td><td>@r.Hb.ToString("0.0#")</td><td>@r.AgeMonths</td><td>@r.Gender</td><td>@r.Hospital</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p>
+        The same pixels carry haemoglobin values up to <strong>@_m.Audit.MaxHbSpread.ToString("0.0") g/dL apart</strong>.
+        At most one record per group can be right, so none of them can be trusted.
+    </p>
+    <h3>Then our own tool found a second layer — inside our own split</h3>
+    <p>
+        We built <a href="dupescope">DupeScope</a> to make this check reusable. Run on CP-AnemiC, its near-duplicate test found
+        <strong>@_m.Audit.NearAdded more images</strong> in @_m.Audit.NearClusters clusters that are re-cropped or re-encoded copies
+        of another record's photo — again listed as different children in all @_m.Audit.NearClustersDifferent clusters.
+        Some of them sat on both sides of <em>our own</em> development/lockbox split, so we fixed the rule and re-ran the whole
+        protocol. Both runs are reported:
+    </p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Protocol</th><th>Images kept</th><th>Nested-CV AUC</th><th>Lockbox AUC (95% CI)</th></tr></thead>
+            <tbody>
+            @foreach (var v in _m.ProtocolHistory)
+            {
+                <tr class="@(v == _m.ProtocolHistory[^1] ? "chosen" : "")">
+                    <td>v@(v.Version): @v.Rule</td>
+                    <td>@v.ReliableImages</td>
+                    <td>@v.NestedCvAuc.ToString("0.00")</td>
+                    <td>@v.LockboxAuc.ToString("0.00") (@v.LockboxAucCi95[0].ToString("0.00")–@v.LockboxAucCi95[1].ToString("0.00"), n = @v.LockboxN)</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <p class="small muted">
+        Nested CV, the steadier estimate, barely moved; the lockbox changed because v2 draws a new random lockbox, and both
+        values sit inside each other's confidence intervals. In total <strong>@_m.Audit.Unreliable of @_m.Audit.Images images
+        (@((_m.Audit.ShareUnreliable * 100).ToString("0.0"))%)</strong> are excluded and <strong>@_m.Audit.ReliableKept</strong> kept.
+        Near-identical rule: @_m.Audit.NearRule.
+    </p>
+    <div class="callout">
+        <p>
+            <strong>Why it matters:</strong> under ordinary random 5-fold cross-validation,
+            <strong>@((_m.Audit.LeakedShare * 100).ToString("0"))%</strong> of test photos have an identical twin in the training set.
+            A "model" that only memorises photos — and knows nothing about colour — scores
+            <strong>@((_m.Audit.MemoriserAccuracy * 100).ToString("0.0"))% accuracy</strong>.
+        </p>
+        <p class="small muted">For context: @_m.Audit.PublishedBenchmark We do not claim those results are wrong — only that this
+            protocol cannot separate learning from memorising.</p>
+    </div>
+    <div class="actions">
+        <a class="btn primary" href="dupescope">🔎 Check your own dataset with DupeScope</a>
+        <a class="btn" href="data/cp-anemic-reliable.csv" download>⬇ @_m.Audit.ReliableKept reliable images (CSV)</a>
+        <a class="btn" href="data/cp-anemic-unreliable-groups.csv" download>⬇ @_m.Audit.Unreliable excluded images, grouped (CSV)</a>
+    </div>
+</section>
+
+<section class="panel" id="accuracy">
+    <h2>2 · Honest accuracy: AUC @_m.Lockbox.Auc.ToString("0.00")</h2>
+    <p>
+        Protocol fixed in advance: 8 demo images set aside, then a <strong>lockbox</strong> of @_m.Lockbox.N images that was
+        evaluated exactly once. All choices — the feature set, the regularisation, the thresholds — were made on the
+        @_m.Dataset.Development development images only.
+    </p>
+    <div class="stats compact">
+        <div class="stat"><b>@_m.Lockbox.Auc.ToString("0.00")</b><span>lockbox AUC (95% CI @_m.Lockbox.AucCi95[0].ToString("0.00")–@_m.Lockbox.AucCi95[1].ToString("0.00"))</span></div>
+        <div class="stat"><b>@_m.NestedCvAll.AucMean.ToString("0.00")</b><span>nested 5×5-fold CV AUC, 5 repeats (± @_m.NestedCvAll.AucSd.ToString("0.00"))</span></div>
+        <div class="stat"><b>@_m.LeaveOneHospitalOut.PooledAuc.ToString("0.00")</b><span>AUC on hospitals the model never saw</span></div>
+    </div>
+    <div class="two">
+        <RocChart Points="_m.Roc" Auc="_m.NestedCvAll.AucPooled" Label="(nested CV)" Operating="_m.OperatingPoints.Values" />
+        <div>
+            <h3>The trade-off, in people</h3>
+            <p class="small">Out of 100 anaemic and 100 healthy children (nested CV):</p>
+            <ul class="small">
+                <li><strong>Cautious cut-off</strong> (pallor index ≥ @Pct(_model.Thresholds.Low)): catches
+                    @Pct(_m.OperatingPoints["low"].Sensitivity) anaemic children but also flags
+                    @Pct(1 - _m.OperatingPoints["low"].Specificity) healthy ones.</li>
+                <li><strong>Strict cut-off</strong> (≥ @Pct(_model.Thresholds.High)): wrongly flags only
+                    @Pct(1 - _m.OperatingPoints["high"].Specificity) healthy children but misses
+                    @Pct(1 - _m.OperatingPoints["high"].Sensitivity) anaemic ones.</li>
+            </ul>
+            <p class="small">No cut-off is good at both. That is why PaleCheck reports a pallor index and an overlap zone instead of "you are anaemic".</p>
+        </div>
+    </div>
+
+    <h3>Where the reference eyes fall</h3>
+    <DistributionChart Healthy="_model.Reference.HealthyHistogram" Anaemic="_model.Reference.AnaemicHistogram"
+                       HealthyLabel="Healthy (Hb ≥ 11)" AnaemicLabel="Anaemic (Hb < 11)" />
+
+    <details>
+        <summary>More checks: hospitals, subgroups, features, confounds, haemoglobin</summary>
+        <div class="grid2">
+            <div class="table-wrap">
+                <table>
+                    <caption>Leave-one-hospital-out</caption>
+                    <thead><tr><th>Held-out hospital</th><th>n</th><th>AUC</th></tr></thead>
+                    <tbody>
+                    @foreach (var h in _m.LeaveOneHospitalOut.PerHospital)
+                    {
+                        <tr><td>@h.Hospital</td><td>@h.N</td><td>@(h.N < 10 ? "too few" : h.Auc?.ToString("0.00") ?? "–")</td></tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <div class="table-wrap">
+                    <table>
+                        <caption>Subgroups (fairness)</caption>
+                        <thead><tr><th>Group</th><th>n</th><th>AUC</th></tr></thead>
+                        <tbody>
+                        @foreach (var s in _m.Subgroups)
+                        {
+                            <tr><td>@s.Group</td><td>@s.N</td><td>@s.Auc.ToString("0.00")</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <caption>Feature-set choice (development only)</caption>
+                        <tbody>
+                        @foreach (var kv in _m.FeatureSetSelection)
+                        {
+                            <tr class="@(kv.Key == _m.ChosenFeatureSet ? "chosen" : "")"><td>@kv.Key</td><td>@kv.Value.ToString("0.000")</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <ul class="small">
+            <li><strong>Best single colour measure:</strong> @BestFeature() — the model combines @_model.Features.Length absolute colour features.</li>
+            <li><strong>Confound check:</strong> predicting from image size alone gives AUC @_m.ConfoundCheck["image_size_only_auc"].ToString("0.00"),
+                below the model; crop size carries a little signal and we report it rather than hide it.</li>
+            <li><strong>Negative result:</strong> estimating the haemoglobin <em>number</em> does not work (error @_m.HbRegression.Mae.ToString("0.00") g/dL vs
+                @_m.HbRegression.BaselineMae.ToString("0.00") for always guessing the average; r = @_m.HbRegression.PearsonR.ToString("0.00")). PaleCheck never shows an Hb estimate.</li>
+            <li><strong>Severe cases</strong> (Hb &lt; 7) are not dramatically easier: AUC @_m.Subgroups.Last().Auc.ToString("0.00").</li>
+        </ul>
+    </details>
+</section>
+
+<section class="panel" id="lighting">
+    <h2>3 · The bulb matters more than the blood</h2>
+    <p>
+        Healthy and anaemic eyelids differ by just <strong>@_m.Lighting.DiseaseGap.ToString("0.0") units</strong> of redness (CIELAB a*) on average.
+        We re-lit every reference eyelid with physically modelled lights:
+    </p>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Light</th><th>White card looks</th><th>Redness shift</th><th>× anaemia gap</th><th>Score swing, no card</th><th>With card</th></tr></thead>
+            <tbody>
+            @foreach (var il in _m.Lighting.Illuminants)
+            {
+                <tr>
+                    <td>@il.Kelvin K @LightName(il.Kelvin)</td>
+                    <td><span class="swatch" style="background: rgb(@il.CardWhiteRgb[0], @il.CardWhiteRgb[1], @il.CardWhiteRgb[2])"></span></td>
+                    <td>+@il.ShiftUncorrected.ToString("0.0")</td>
+                    <td><strong>@il.TimesDiseaseGap.ToString("0.0")×</strong></td>
+                    <td>±@((il.ProbChangeUncorrected * 100).ToString("0"))</td>
+                    <td>±@((il.ProbChangeWithCard * 100).ToString("0"))</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <p>
+        A warm bulb shifts redness <strong>@_m.Lighting.Illuminants[0].TimesDiseaseGap.ToString("0.0")×</strong> more than anaemia does.
+        Because the white card sits in the same light, dividing by its colour (von Kries correction) cancels the cast.
+        In simulation that is exact by construction; the <a href="lab">Lighting Lab</a> measures how well it works with a real phone camera.
+    </p>
+    <p class="small muted">
+        Contrast features within one photo (e.g. the reddest vs palest tissue) moved only
+        @_m.Lighting.Illuminants[0].RelativeShiftSd.ToString("0.0") SD under the warm bulb vs
+        @_m.Lighting.Illuminants[0].AbsoluteShiftSd.ToString("0.0") SD for absolute colour — but on development data they predicted
+        anaemia less well (AUC @_m.FeatureSetSelection["relative"].ToString("0.00") vs @_m.FeatureSetSelection["absolute"].ToString("0.00")),
+        so the card, not the features, has to solve lighting.
+    </p>
+</section>
+
+<section class="panel" id="meaning">
+    <h2>4 · What this means</h2>
+    <ul>
+        <li><strong>Data first.</strong> Phone anaemia screening is not held back by AI models; it is held back by data: reused photos and uncontrolled light.</li>
+        <li><strong>Honest framing.</strong> With AUC @_m.Lockbox.Auc.ToString("0.00"), a single photo can nudge someone toward a blood test, but it cannot rule anaemia in or out. PaleCheck says exactly that.</li>
+        <li><strong>The fix is cheap.</strong> A printed white card plus a fixed routine (same window, same time of day) turns a phone into a repeatable measuring tool. Tracking your <em>own</em> readings over time removes differences between people, the next biggest source of noise.</li>
+        <li><strong>Next step.</strong> Collect a calibrated dataset of Indian teenagers with lab haemoglobin, using the protocol below, and re-validate.</li>
+    </ul>
+    <h3>Limitations</h3>
+    <ul class="small">
+        <li>Reference eyes are children aged @_m.Dataset.AgeMonths[0]–@_m.Dataset.AgeMonths[1] months from @_m.Dataset.Hospitals hospitals in Ghana; anaemia is defined as @_m.Dataset.AnaemiaDefinition. Teenagers in India have different thresholds (WHO: 12 g/dL for girls 12–14 and women; 13 g/dL for men 15+).</li>
+        <li>The dataset has no colour reference, so the model learned from uncalibrated photos while the app applies card correction. Re-training on calibrated photos is required.</li>
+        <li>The lighting experiment above is a simulation; real-camera validation is pending (Lighting Lab).</li>
+        <li>Not a medical device. Not clinically validated.</li>
+    </ul>
+</section>
+
+<section class="panel" id="methods">
+    <h2>5 · Methods</h2>
+    <ol class="small">
+        <li><strong>Pixels:</strong> outlined tissue only; glare (all channels &gt; @_model.PixelRules.GlareMin) and shadow (all &lt; @_model.PixelRules.DarkMax) removed.</li>
+        <li><strong>Colour:</strong> sRGB → linear → CIE XYZ → CIELAB (D65). @_model.Features.Length features: @string.Join(", ", _model.Features).</li>
+        <li><strong>Model:</strong> L2-regularised logistic regression (λ = @_model.Lambda via inner 5-fold CV), written from scratch in numpy, so the whole model is @(_model.Features.Length + 1) numbers that run offline in the browser.</li>
+        <li><strong>Validation:</strong> removal of identical and near-identical copies → 8-image demo hold-out → 70/30 development/lockbox split → nested CV on development for every choice → single lockbox evaluation → leave-one-hospital-out, subgroup and confound checks → bootstrap 95% CIs (2,000 resamples).</li>
+        <li><strong>Lighting:</strong> blackbody illuminants from the Kang et al. (2002) Planckian-locus fit, von Kries relighting in linear sRGB.</li>
+        <li><strong>Parity:</strong> the C# app re-implements every formula; unit tests check it reproduces Python's features to 10⁻⁹.</li>
+    </ol>
+    <p class="small">Reproduce: <code>python model/get_data.py</code>, <code>python model/train.py</code>, then <code>dotnet test</code>. Seed @("20261001").
+        Continuous integration re-downloads the public dataset and re-derives every headline number on each change.</p>
+</section>
+
+<section class="panel" id="protocol">
+    <h2>6 · Data protocol for a calibrated dataset</h2>
+    <ol class="small">
+        <li>Participants: volunteers with a haemoglobin result from a lab or digital haemoglobinometer taken within the last 7 days. Under-18s need written consent from a parent or guardian as well as their own agreement.</li>
+        <li>Capture: same window, daylight, no flash, card beside the eye; 3 photos per eye.</li>
+        <li>Store numbers only (colour features, card colour, lab Hb, age band, sex) — never photos or names. Export from <a href="history">History</a> as CSV.</li>
+        <li>Analyse with the same pipeline; publish de-duplicated, calibrated results.</li>
+    </ol>
+</section>
+
+<section class="panel">
+    <h2>Sources &amp; credits</h2>
+    <ul class="small">
+        <li>Appiahene P. et al. (2023). CP-AnemiC: A conjunctival pallor dataset and benchmark for anemia detection in children. <em>Medicine in Novel Technology and Devices</em>. Data: <a href="@_m.Dataset.Source" target="_blank" rel="noopener">Mendeley Data, DOI @_m.Dataset.Doi</a>, @_m.Dataset.License. We removed duplicate images; no other changes.</li>
+        <li>NFHS-5 (2019–21): anaemia in 59.1% of girls aged 15–19 in India (via Scott et al., <em>Maternal &amp; Child Nutrition</em>, 2022).</li>
+        <li>Anaemia Mukt Bharat operational guidelines, National Health Mission, Government of India.</li>
+        <li>Kang B. et al. (2002). Design of advanced color temperature control system for HDTV applications. <em>J. Korean Physical Society</em>.</li>
+    </ul>
+</section>
+
+@code {
+    private Metrics? _m;
+    private PallorModel? _model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _m = await Data.Metrics;
+        _model = await Data.Model;
+    }
+
+    private static string Pct(double v) => (v * 100).ToString("0");
+
+    private string BestFeature()
+    {
+        var best = _m!.SingleFeatureAuc.MaxBy(kv => kv.Value);
+        return $"{best.Key} (AUC {best.Value:0.00})";
+    }
+
+    private static string LightName(int k) => k switch
+    {
+        <= 2800 => "(yellow bulb)",
+        <= 3600 => "(warm LED)",
+        <= 4200 => "(neutral tube)",
+        _ => "(cool white)",
+    };
+}
