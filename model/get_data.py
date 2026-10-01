@@ -21,7 +21,10 @@ def main():
     archive = RAW / "cp-anemic.rar"
     if not archive.exists():
         print("downloading CP-AnemiC (8.3 MB)...")
-        urllib.request.urlretrieve(URL, archive)
+        # Mendeley rejects urllib's default User-Agent with 403.
+        req = urllib.request.Request(URL, headers={"User-Agent": "palecheck-research/1.0 (+https://palecheck.zetalabs.in)"})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            archive.write_bytes(r.read())
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     if digest != SHA256:
         raise SystemExit(f"checksum mismatch: {digest}")
