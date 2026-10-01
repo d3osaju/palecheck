@@ -31,6 +31,14 @@ public record Audit(
     [property: JsonPropertyName("images_added_by_near_identical")] int NearAdded,
     [property: JsonPropertyName("clusters_with_near_identical_copies")] int NearClusters,
     [property: JsonPropertyName("near_clusters_listing_different_patients")] int NearClustersDifferent,
+    [property: JsonPropertyName("recrop_pairs")] int RecropPairs,
+    [property: JsonPropertyName("mirrored_copy_pairs")] int MirroredPairs,
+    [property: JsonPropertyName("recrop_rule")] string RecropRule,
+    [property: JsonPropertyName("images_added_by_recrop")] int RecropAdded,
+    [property: JsonPropertyName("clusters_with_recrops")] int RecropClusters,
+    [property: JsonPropertyName("recrop_clusters_listing_different_patients")] int RecropClustersDifferent,
+    [property: JsonPropertyName("copy_clusters_total")] int CopyClusters,
+    [property: JsonPropertyName("distinct_photographs")] int DistinctPhotographs,
     [property: JsonPropertyName("unreliable_images")] int Unreliable,
     [property: JsonPropertyName("share_unreliable")] double ShareUnreliable,
     [property: JsonPropertyName("reliable_images_kept")] int ReliableKept);
@@ -105,7 +113,15 @@ public record Metrics(
     [property: JsonPropertyName("hb_regression")] HbRegression HbRegression,
     [property: JsonPropertyName("feature_weights")] FeatureWeight[] FeatureWeights,
     [property: JsonPropertyName("lighting_simulation")] LightingSimulation Lighting,
-    [property: JsonPropertyName("demo_holdout")] DemoResult[] DemoHoldout);
+    [property: JsonPropertyName("demo_holdout")] DemoResult[] DemoHoldout,
+    /// <summary>[pallor-index cut-off, sensitivity, specificity] for cut-offs 0..100.</summary>
+    [property: JsonPropertyName("operating_curve")] double[][] OperatingCurve,
+    [property: JsonPropertyName("leakage_demo")] LeakageRow[] LeakageDemo);
+
+public record LeakageRow(string Level, int Images, double Memoriser,
+    [property: JsonPropertyName("colour_model")] double ColourModel);
+
+public record BenchmarkData(string[] Features, string[] Hospitals, BenchSample[] Samples);
 
 /// <summary>Loads the model, its validation metrics and the demo samples once per session.</summary>
 public sealed class AppData(HttpClient http)
@@ -114,6 +130,20 @@ public sealed class AppData(HttpClient http)
     private Task<PallorModel>? _model;
     private Task<Metrics>? _metrics;
     private Task<Sample[]>? _samples;
+    private Task<BenchmarkData>? _benchmark;
+
+    private record BenchRow(string Id, int Y, int H, int E, int C, int K, double[] X);
+    private record BenchFile(string[] Features, string[] Hospitals, BenchRow[] Rows);
+
+    /// <summary>Colour features of all 710 published images, for the Benchmark Lab (loaded on demand).</summary>
+    public Task<BenchmarkData> Benchmark => _benchmark ??= LoadBenchmark();
+
+    private async Task<BenchmarkData> LoadBenchmark()
+    {
+        var f = (await http.GetFromJsonAsync<BenchFile>("data/cp-anemic-features.json", Options))!;
+        return new BenchmarkData(f.Features, f.Hospitals,
+            f.Rows.Select(r => new BenchSample(r.Id, r.Y, r.H, r.E, r.C, r.K, r.X)).ToArray());
+    }
 
     public Task<PallorModel> Model => _model ??= LoadModel();
     public Task<Metrics> Metrics => _metrics ??= http.GetFromJsonAsync<Metrics>("model/metrics.json", Options)!;

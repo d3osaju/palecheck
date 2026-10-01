@@ -3,6 +3,7 @@
 @inject Lang L
 @inject AppData Data
 @inject History History
+@inject Js Js
 
 <PageTitle>@L["check.title"] · PaleCheck</PageTitle>
 
@@ -146,6 +147,13 @@
                 </div>
             </div>
             <p class="advice">@L["advice." + band]</p>
+            <div class="actions">
+                <button class="btn ghost" @onclick="() => SpeakAsync(band)">🔊 @L["result.listen"]</button>
+                @if (_voiceMissing)
+                {
+                    <span class="small muted">@L["result.noVoice"]</span>
+                }
+            </div>
 
             @foreach (var issue in _shots.SelectMany(s => s.Issues).Distinct())
             {
@@ -161,6 +169,12 @@
                 <div class="actions">
                     <button class="btn" @onclick="AddPhoto">➕ @L["result.addPhoto"]</button>
                 </div>
+            }
+
+            @if (_model.Reference.HealthyLab is { } healthyLab && _model.Reference.AnaemicLab is { } anaemicLab)
+            {
+                <ColourCompare Healthy="healthyLab" Anaemic="anaemicLab"
+                               Yours="[_shots.Average(s => s.Features[2]), _shots.Average(s => s.Features[0]), _shots.Average(s => s.Features[3])]" />
             }
 
             <div class="symptoms">
@@ -373,6 +387,15 @@
         _maskCount = 0;
         _wand = null;
         _step = Step.Photo;
+    }
+
+    private bool _voiceMissing;
+
+    private async Task SpeakAsync(PallorBand band)
+    {
+        var text = string.Join(" ", L["band." + band] + ".", L["advice." + band], L["test.title"] + ".", L["test.body"]);
+        var tag = L.Current switch { "ml" => "ml-IN", "hi" => "hi-IN", _ => "en-IN" };
+        _voiceMissing = await Js.InvokeAsync<string>("speak", text, tag) != "ok";
     }
 
     private void Toggle(string key, ChangeEventArgs e)

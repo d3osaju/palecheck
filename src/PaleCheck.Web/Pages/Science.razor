@@ -21,9 +21,10 @@
     <a href="science#audit">1 · Data audit</a>
     <a href="science#accuracy">2 · Honest accuracy</a>
     <a href="science#lighting">3 · Lighting</a>
-    <a href="science#meaning">4 · What it means</a>
-    <a href="science#methods">5 · Methods</a>
-    <a href="science#protocol">6 · Data protocol</a>
+    <a href="science#screening">4 · Should a photo decide?</a>
+    <a href="science#meaning">5 · What it means</a>
+    <a href="science#methods">6 · Methods</a>
+    <a href="science#protocol">7 · Data protocol</a>
 </nav>
 
 <section class="panel" id="audit">
@@ -57,13 +58,28 @@
         The same pixels carry haemoglobin values up to <strong>@_m.Audit.MaxHbSpread.ToString("0.0") g/dL apart</strong>.
         At most one record per group can be right, so none of them can be trusted.
     </p>
-    <h3>Then our own tool found a second layer — inside our own split</h3>
-    <p>
-        We built <a href="dupescope">DupeScope</a> to make this check reusable. Run on CP-AnemiC, its near-duplicate test found
-        <strong>@_m.Audit.NearAdded more images</strong> in @_m.Audit.NearClusters clusters that are re-cropped or re-encoded copies
-        of another record's photo — again listed as different children in all @_m.Audit.NearClustersDifferent clusters.
-        Some of them sat on both sides of <em>our own</em> development/lockbox split, so we fixed the rule and re-ran the whole
-        protocol. Both runs are reported:
+    <h3>Then our own tools found two more layers</h3>
+    <ol>
+        <li><strong>Re-encoded copies.</strong> We built <a href="dupescope">DupeScope</a> to make the check reusable. Its
+            near-duplicate test found <strong>@_m.Audit.NearAdded more images</strong> in @_m.Audit.NearClusters clusters: resized or
+            re-saved copies of another record's photo. Some sat on both sides of <em>our own</em> development/lockbox split.</li>
+        <li><strong>Re-cropped copies.</strong> In the <a href="benchmark">Benchmark Lab</a>, a memoriser that only copies the label of
+            the most similar image still scored far above our model on the "clean" data. Its nearest neighbours were often
+            consecutive image numbers. They turned out to be <strong>the same photograph cut out with a different outline</strong>:
+            sliding one over the other, their overlapping pixels match almost exactly. This added <strong>@_m.Audit.RecropAdded more
+            images</strong> in @_m.Audit.RecropClusters clusters (@_m.Audit.MirroredPairs pairs are mirror-image copies), every cluster
+            again filed as different children.</li>
+    </ol>
+    <div class="stats compact">
+        <div class="stat"><b>@_m.Audit.Images</b><span>patient records in the dataset</span></div>
+        <div class="stat"><b>@_m.Audit.DistinctPhotographs</b><span>distinct photographs behind them</span></div>
+        <div class="stat"><b>@_m.Audit.ReliableKept</b><span>images whose photograph belongs to one record only</span></div>
+    </div>
+    <p class="small">
+        We checked the re-crop detector against a control: the same candidate pairs with one image mirrored, which keeps colour
+        and texture statistics but breaks any real pixel match. At our threshold the control only ever matched true mirror-image
+        copies (difference 0); the next-closest control pair sat above the threshold. Every time the rule changed we re-ran
+        the whole protocol, and all three runs are reported:
     </p>
     <div class="table-wrap">
         <table>
@@ -82,10 +98,10 @@
         </table>
     </div>
     <p class="small muted">
-        Nested CV, the steadier estimate, barely moved; the lockbox changed because v2 draws a new random lockbox, and both
-        values sit inside each other's confidence intervals. In total <strong>@_m.Audit.Unreliable of @_m.Audit.Images images
-        (@((_m.Audit.ShareUnreliable * 100).ToString("0.0"))%)</strong> are excluded and <strong>@_m.Audit.ReliableKept</strong> kept.
-        Near-identical rule: @_m.Audit.NearRule.
+        Nested cross-validation, the steadiest estimate, stays at about 0.65 in every version. The lockbox moves because each
+        version draws a new, smaller random lockbox, and with @_m.ProtocolHistory[^1].LockboxN images its confidence interval is
+        wide. In total <strong>@_m.Audit.Unreliable of @_m.Audit.Images images (@((_m.Audit.ShareUnreliable * 100).ToString("0.0"))%)</strong>
+        are excluded. Rules: near-identical — @_m.Audit.NearRule; re-crop — @_m.Audit.RecropRule.
     </p>
     <div class="callout">
         <p>
@@ -98,22 +114,24 @@
             protocol cannot separate learning from memorising.</p>
     </div>
     <div class="actions">
-        <a class="btn primary" href="dupescope">🔎 Check your own dataset with DupeScope</a>
+        <a class="btn primary" href="benchmark">🧪 Watch a model cheat (Benchmark Lab)</a>
+        <a class="btn" href="dupescope">🔎 Check your own dataset with DupeScope</a>
         <a class="btn" href="data/cp-anemic-reliable.csv" download>⬇ @_m.Audit.ReliableKept reliable images (CSV)</a>
         <a class="btn" href="data/cp-anemic-unreliable-groups.csv" download>⬇ @_m.Audit.Unreliable excluded images, grouped (CSV)</a>
     </div>
 </section>
 
 <section class="panel" id="accuracy">
-    <h2>2 · Honest accuracy: AUC @_m.Lockbox.Auc.ToString("0.00")</h2>
+    <h2>2 · Honest accuracy: AUC ≈ @_m.NestedCvAll.AucMean.ToString("0.00"), and very uncertain</h2>
     <p>
-        Protocol fixed in advance: 8 demo images set aside, then a <strong>lockbox</strong> of @_m.Lockbox.N images that was
-        evaluated exactly once. All choices — the feature set, the regularisation, the thresholds — were made on the
-        @_m.Dataset.Development development images only.
+        Only @(_m.Dataset.Anaemic + _m.Dataset.Healthy) independent images remain for training and testing (plus 8 demo images), so
+        every estimate is uncertain. Protocol fixed in advance: 8 demo images set aside, then a <strong>lockbox</strong> of
+        @_m.Lockbox.N images evaluated exactly once; all choices (feature set, regularisation, thresholds) were made on the
+        @_m.Dataset.Development development images only. The steadiest number is nested cross-validation over all of them.
     </p>
     <div class="stats compact">
-        <div class="stat"><b>@_m.Lockbox.Auc.ToString("0.00")</b><span>lockbox AUC (95% CI @_m.Lockbox.AucCi95[0].ToString("0.00")–@_m.Lockbox.AucCi95[1].ToString("0.00"))</span></div>
-        <div class="stat"><b>@_m.NestedCvAll.AucMean.ToString("0.00")</b><span>nested 5×5-fold CV AUC, 5 repeats (± @_m.NestedCvAll.AucSd.ToString("0.00"))</span></div>
+        <div class="stat"><b>@_m.NestedCvAll.AucMean.ToString("0.00")</b><span>nested 5×5-fold CV AUC (95% CI @_m.NestedCvAll.AucPooledCi95[0].ToString("0.00")–@_m.NestedCvAll.AucPooledCi95[1].ToString("0.00"))</span></div>
+        <div class="stat"><b>@_m.Lockbox.Auc.ToString("0.00")</b><span>lockbox AUC, n = @_m.Lockbox.N (95% CI @_m.Lockbox.AucCi95[0].ToString("0.00")–@_m.Lockbox.AucCi95[1].ToString("0.00"))</span></div>
         <div class="stat"><b>@_m.LeaveOneHospitalOut.PooledAuc.ToString("0.00")</b><span>AUC on hospitals the model never saw</span></div>
     </div>
     <div class="two">
@@ -179,7 +197,7 @@
             </div>
         </div>
         <ul class="small">
-            <li><strong>Best single colour measure:</strong> @BestFeature() — the model combines @_model.Features.Length absolute colour features.</li>
+            <li><strong>Best single colour measure:</strong> @BestFeature() — the model uses the "@_m.ChosenFeatureSet" feature set (@_model.Features.Length features).</li>
             <li><strong>Confound check:</strong> predicting from image size alone gives AUC @_m.ConfoundCheck["image_size_only_auc"].ToString("0.00"),
                 below the model; crop size carries a little signal and we report it rather than hide it.</li>
             <li><strong>Negative result:</strong> estimating the haemoglobin <em>number</em> does not work (error @_m.HbRegression.Mae.ToString("0.00") g/dL vs
@@ -221,17 +239,41 @@
     <p class="small muted">
         Contrast features within one photo (e.g. the reddest vs palest tissue) moved only
         @_m.Lighting.Illuminants[0].RelativeShiftSd.ToString("0.0") SD under the warm bulb vs
-        @_m.Lighting.Illuminants[0].AbsoluteShiftSd.ToString("0.0") SD for absolute colour — but on development data they predicted
-        anaemia less well (AUC @_m.FeatureSetSelection["relative"].ToString("0.00") vs @_m.FeatureSetSelection["absolute"].ToString("0.00")),
-        so the card, not the features, has to solve lighting.
+        @_m.Lighting.Illuminants[0].AbsoluteShiftSd.ToString("0.0") SD for absolute colour.
+        @if (_m.ChosenFeatureSet == "relative")
+        {
+            <span>On the development data they also predicted slightly better (AUC @_m.FeatureSetSelection["relative"].ToString("0.00") vs
+                @_m.FeatureSetSelection["absolute"].ToString("0.00"), a difference well within noise), so the app's model now uses them and
+                is less sensitive to lighting even before the card corrects it.</span>
+        }
+        else
+        {
+            <span>On the development data they predicted anaemia less well (AUC @_m.FeatureSetSelection["relative"].ToString("0.00") vs
+                @_m.FeatureSetSelection["absolute"].ToString("0.00")), so the card, not the features, has to solve lighting.</span>
+        }
+    </p>
+</section>
+
+<section class="panel" id="screening">
+    <h2>4 · Should a photo decide who gets a blood test?</h2>
+    <p>
+        A screening app is only useful if it beats the simple alternative. In India the alternative already exists: under Anaemia
+        Mukt Bharat, school students get a free yearly haemoglobin test. Move the sliders to see what happens to 1,000 people if a
+        photo decides who gets tested.
+    </p>
+    <ScreeningCalculator Curve="_m.OperatingCurve" InitialCutoff="@((int)Math.Round(_model.Thresholds.Low * 100))" />
+    <p>
+        <strong>Our conclusion:</strong> where anaemia is this common, a photo should <em>never</em> replace the blood test, because
+        every test it saves costs a missed case. PaleCheck is designed for the people the system misses: those not in school,
+        those who skipped the test, adults. Its job is to get them to a test, not to decide whether they need one.
     </p>
 </section>
 
 <section class="panel" id="meaning">
-    <h2>4 · What this means</h2>
+    <h2>5 · What this means</h2>
     <ul>
         <li><strong>Data first.</strong> Phone anaemia screening is not held back by AI models; it is held back by data: reused photos and uncontrolled light.</li>
-        <li><strong>Honest framing.</strong> With AUC @_m.Lockbox.Auc.ToString("0.00"), a single photo can nudge someone toward a blood test, but it cannot rule anaemia in or out. PaleCheck says exactly that.</li>
+        <li><strong>Honest framing.</strong> With AUC ≈ @_m.NestedCvAll.AucMean.ToString("0.00"), a single photo can nudge someone toward a blood test, but it cannot rule anaemia in or out. PaleCheck says exactly that.</li>
         <li><strong>The fix is cheap.</strong> A printed white card plus a fixed routine (same window, same time of day) turns a phone into a repeatable measuring tool. Tracking your <em>own</em> readings over time removes differences between people, the next biggest source of noise.</li>
         <li><strong>Next step.</strong> Collect a calibrated dataset of Indian teenagers with lab haemoglobin, using the protocol below, and re-validate.</li>
     </ul>
@@ -240,17 +282,19 @@
         <li>Reference eyes are children aged @_m.Dataset.AgeMonths[0]–@_m.Dataset.AgeMonths[1] months from @_m.Dataset.Hospitals hospitals in Ghana; anaemia is defined as @_m.Dataset.AnaemiaDefinition. Teenagers in India have different thresholds (WHO: 12 g/dL for girls 12–14 and women; 13 g/dL for men 15+).</li>
         <li>The dataset has no colour reference, so the model learned from uncalibrated photos while the app applies card correction. Re-training on calibrated photos is required.</li>
         <li>The lighting experiment above is a simulation; real-camera validation is pending (Lighting Lab).</li>
+        <li>Only @(_m.Dataset.Anaemic + _m.Dataset.Healthy + _m.Dataset.DemoHoldout) independent photographs survive the audit, so every AUC here has a wide confidence interval.</li>
+        <li>The re-crop search compares each image with its nearest colour neighbours only, so a few copies may remain undetected.</li>
         <li>Not a medical device. Not clinically validated.</li>
     </ul>
 </section>
 
 <section class="panel" id="methods">
-    <h2>5 · Methods</h2>
+    <h2>6 · Methods</h2>
     <ol class="small">
         <li><strong>Pixels:</strong> outlined tissue only; glare (all channels &gt; @_model.PixelRules.GlareMin) and shadow (all &lt; @_model.PixelRules.DarkMax) removed.</li>
         <li><strong>Colour:</strong> sRGB → linear → CIE XYZ → CIELAB (D65). @_model.Features.Length features: @string.Join(", ", _model.Features).</li>
         <li><strong>Model:</strong> L2-regularised logistic regression (λ = @_model.Lambda via inner 5-fold CV), written from scratch in numpy, so the whole model is @(_model.Features.Length + 1) numbers that run offline in the browser.</li>
-        <li><strong>Validation:</strong> removal of identical and near-identical copies → 8-image demo hold-out → 70/30 development/lockbox split → nested CV on development for every choice → single lockbox evaluation → leave-one-hospital-out, subgroup and confound checks → bootstrap 95% CIs (2,000 resamples).</li>
+        <li><strong>Validation:</strong> removal of identical, near-identical and re-cropped copies → 8-image demo hold-out → 70/30 development/lockbox split → nested CV on development for every choice → single lockbox evaluation → leave-one-hospital-out, subgroup and confound checks → bootstrap 95% CIs (2,000 resamples).</li>
         <li><strong>Lighting:</strong> blackbody illuminants from the Kang et al. (2002) Planckian-locus fit, von Kries relighting in linear sRGB.</li>
         <li><strong>Parity:</strong> the C# app re-implements every formula; unit tests check it reproduces Python's features to 10⁻⁹.</li>
     </ol>
@@ -259,7 +303,7 @@
 </section>
 
 <section class="panel" id="protocol">
-    <h2>6 · Data protocol for a calibrated dataset</h2>
+    <h2>7 · Data protocol for a calibrated dataset</h2>
     <ol class="small">
         <li>Participants: volunteers with a haemoglobin result from a lab or digital haemoglobinometer taken within the last 7 days. Under-18s need written consent from a parent or guardian as well as their own agreement.</li>
         <li>Capture: same window, daylight, no flash, card beside the eye; 3 photos per eye.</li>

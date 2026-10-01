@@ -483,6 +483,40 @@ export function print() {
     window.print();
 }
 
+/** Reads text aloud. Returns "ok", "no-voice" (voices loaded, none for this language) or "unsupported". */
+export function speak(text, lang) {
+    if (!("speechSynthesis" in window)) return "unsupported";
+    const voices = speechSynthesis.getVoices();
+    const prefix = lang.slice(0, 2).toLowerCase();
+    const voice = voices.find(v => (v.lang || "").toLowerCase().startsWith(prefix));
+    if (voices.length > 0 && !voice) return "no-voice";
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang;
+    if (voice) u.voice = voice;
+    u.rate = 0.95;
+    speechSynthesis.speak(u);
+    return "ok";
+}
+
+export function stopSpeaking() {
+    if ("speechSynthesis" in window) speechSynthesis.cancel();
+}
+
+/** True once the browser has offered to install the app (captured in index.html). */
+export function canInstall() {
+    return !!window.__installPrompt;
+}
+
+export async function promptInstall() {
+    const p = window.__installPrompt;
+    if (!p) return false;
+    window.__installPrompt = null;
+    p.prompt();
+    const choice = await p.userChoice;
+    return choice && choice.outcome === "accepted";
+}
+
 export function setLang(lang) {
     document.documentElement.lang = lang;
 }

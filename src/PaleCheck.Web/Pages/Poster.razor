@@ -30,12 +30,26 @@
                 </div>
                 <div>
                     <p class="poster-kicker">Finding 1 · the data</p>
-                    <h1>@((_m.Audit.ShareUnreliable * 100).ToString("0"))% of the largest public eyelid dataset is reused photos.</h1>
-                    <p class="poster-body">The same image is filed as different children, with haemoglobin from
+                    <h1>@_m.Audit.Images patient records. Only @_m.Audit.DistinctPhotographs photographs.</h1>
+                    <p class="poster-body">@((_m.Audit.ShareUnreliable * 100).ToString("0"))% of the largest public eyelid dataset is copies, re-crops
+                        or mirror images of another record's photo. One image is filed as different children, with haemoglobin from
                         @_m.Audit.Example.Min(e => e.Hb).ToString("0.0") to @_m.Audit.Example.Max(e => e.Hb).ToString("0.0") g/dL.
                         A model that only memorises photos scores <b>@((_m.Audit.MemoriserAccuracy * 100).ToString("0"))%</b>.</p>
                 </div>
             </div>
+            break;
+
+        case "cheat":
+            <p class="poster-kicker">Finding 3 · the cheat</p>
+            <h1>A model that only memorises scores @_m.LeakageDemo[0].Memoriser.ToString("0.00"). Remove the copies: @_m.LeakageDemo[^1].Memoriser.ToString("0.00").</h1>
+            <div class="poster-stats">
+                @foreach (var r in _m.LeakageDemo)
+                {
+                    <div><b>@r.Memoriser.ToString("0.00")</b><span>memoriser · @r.Level (@r.Images)</span></div>
+                }
+            </div>
+            <p class="poster-body">PaleCheck's colour model stays near @_m.LeakageDemo[^1].ColourModel.ToString("0.00") at every level: it was
+                never memorising. Run it yourself in the Benchmark Lab.</p>
             break;
 
         case "lighting":
@@ -59,7 +73,9 @@
             <div class="poster-split">
                 <div>
                     <p class="poster-kicker">The honest number</p>
-                    <h1>AUC @_m.Lockbox.Auc.ToString("0.00") on a lockbox opened once.</h1>
+                    <h1>AUC @_m.NestedCvAll.AucMean.ToString("0.00"), with the copies gone.</h1>
+                    <p class="poster-body">95% CI @_m.NestedCvAll.AucPooledCi95[0].ToString("0.00")–@_m.NestedCvAll.AucPooledCi95[1].ToString("0.00"),
+                        nested cross-validation on @(_m.Dataset.Anaemic + _m.Dataset.Healthy) independent photos.</p>
                     <p class="poster-body">Healthy and anaemic eyelids overlap. PaleCheck shows where you sit, says when a photo
                         can't decide, and sends you to a free blood test.</p>
                 </div>

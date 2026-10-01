@@ -6,7 +6,9 @@ public record PixelRules(int AlphaMin, int GlareMin, int DarkMax);
 
 public record Thresholds(double Low, double High);
 
-public record ReferenceDistribution(int[] HealthyHistogram, int[] AnaemicHistogram);
+/// <param name="HealthyLab">Average eyelid colour (L*, a*, b*) of the healthy reference eyes.</param>
+public record ReferenceDistribution(int[] HealthyHistogram, int[] AnaemicHistogram,
+    double[]? HealthyLab = null, double[]? AnaemicLab = null);
 
 /// <summary>
 /// The logistic-regression model exported by model/train.py (wwwroot/model/model.json).

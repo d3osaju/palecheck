@@ -1,0 +1,236 @@
+@page "/report"
+@inject AppData Data
+
+<PageTitle>Technical report · PaleCheck</PageTitle>
+
+@if (_m is null || _model is null)
+{
+    <p class="muted">Loading…</p>
+    return;
+}
+
+@{
+    var a = _m.Audit;
+    var v3 = _m.ProtocolHistory[^1];
+    var leak = _m.LeakageDemo;
+    int lowCut = (int)Math.Round(_model.Thresholds.Low * 100);
+    var op = _m.OperatingCurve[lowCut];
+    var phone = Screening.PhoneFirst(0.591, op[1], op[2]);
+    int n = _m.Dataset.Anaemic + _m.Dataset.Healthy;
+}
+
+<article class="report">
+    <p class="no-print small"><a href="palecheck-report.pdf" download>⬇ Download as PDF</a> · <a href="science">Interactive version</a></p>
+    <header>
+        <p class="report-kicker">Technical report · EurekaDev 2026 · palecheck.zetalabs.in</p>
+        <h1>Copies, light and honest accuracy: auditing a public eyelid-anaemia dataset and building a calibrated phone check</h1>
+        <p class="report-meta">PaleCheck project · code and data: github.com/d3osaju/palecheck</p>
+    </header>
+
+    <section class="abstract">
+        <h2>Abstract</h2>
+        <p>
+            Phone apps promise to detect anaemia from a photo of the inner eyelid, and the largest public dataset for the task,
+            CP-AnemiC, reports up to AUC 0.835. We audited its @a.Images images. <b>@a.Unreliable (@((a.ShareUnreliable * 100).ToString("0"))%)</b>
+            are copies of a photograph that also appears under another patient record: @a.ImagesInDuplicateGroups pixel-identical,
+            @a.NearAdded re-encoded and @a.RecropAdded re-cropped or mirrored. The @a.Images records contain only <b>@a.DistinctPhotographs
+            distinct photographs</b>. Under random cross-validation a 1-nearest-neighbour "memoriser" scores AUC @leak[0].Memoriser.ToString("0.00")
+            on the published data and @leak[^1].Memoriser.ToString("0.00") once all copies are removed, while a simple colour model stays near
+            @leak[^1].ColourModel.ToString("0.00"). On the @n independent images, nested cross-validation gives AUC
+            @_m.NestedCvAll.AucMean.ToString("0.00") (95% CI @_m.NestedCvAll.AucPooledCi95[0].ToString("0.00")–@_m.NestedCvAll.AucPooledCi95[1].ToString("0.00")).
+            A physically modelled warm bulb shifts eyelid redness @_m.Lighting.Illuminants[0].TimesDiseaseGap.ToString("0.0")× more than anaemia does;
+            a printed white card removes the shift. We release PaleCheck, an offline, multilingual phone app built around these limits;
+            the audit tools DupeScope and the Benchmark Lab; and cleaned dataset manifests.
+        </p>
+    </section>
+
+    <section>
+        <h2>1 Introduction</h2>
+        <p>
+            Anaemia affects 59.1% of Indian girls aged 15–19 [2]. Clinicians look for pallor of the palpebral conjunctiva (inner
+            lower eyelid), and several studies train image models on conjunctiva photographs [1, 5]. Reported accuracies are high,
+            but small medical datasets are prone to <i>leakage</i>, where test images are not independent of training images, a
+            well-documented cause of inflated results across machine-learning-based science [7]. We set out to build a screening
+            app and audited the data first.
+        </p>
+    </section>
+
+    <section>
+        <h2>2 Data and audit</h2>
+        <p>
+            CP-AnemiC contains @a.Images cropped conjunctiva images of children aged 6–59 months from 10 Ghanaian hospitals, each linked to
+            a laboratory haemoglobin value; anaemia is Hb &lt; 11 g/dL [1, 6]. We searched for photographs reused across records in three passes:
+        </p>
+        <ol>
+            <li><b>Identical:</b> MD5 of decoded RGBA pixels. @a.ImagesInDuplicateGroups images in @a.DuplicateGroups groups (up to @a.LargestGroup copies;
+                Hb within one group spans up to @a.MaxHbSpread.ToString("0.0") g/dL).</li>
+            <li><b>Near-identical:</b> @a.NearRule. @a.NearAdded more images.</li>
+            <li><b>Re-cropped:</b> @a.RecropRule; mirrored orientation also tested. @a.RecropAdded more images in @a.RecropClusters clusters
+                (@a.MirroredPairs mirror-image pairs).</li>
+        </ol>
+        <p>
+            As a control for pass 3 we re-scored the same candidate pairs with one image mirrored, which preserves colour and texture
+            statistics but destroys a true pixel match. At the threshold the control matched only genuine mirror-image copies
+            (difference 0); the next-closest control pair lay above the threshold. Every copy cluster lists different patients
+            (hospital, age, sex or haemoglobin), so no record in a cluster can be verified; all @a.Unreliable images were excluded.
+        </p>
+        <table>
+            <caption>Table 1. Copies of a photograph filed under more than one record.</caption>
+            <thead><tr><th>Pass</th><th>Images added</th><th>Cumulative excluded</th><th>Images kept</th></tr></thead>
+            <tbody>
+                <tr><td>Identical</td><td>@a.ImagesInDuplicateGroups</td><td>@a.ImagesInDuplicateGroups</td><td>@(a.Images - a.ImagesInDuplicateGroups)</td></tr>
+                <tr><td>+ Near-identical</td><td>@a.NearAdded</td><td>@(a.ImagesInDuplicateGroups + a.NearAdded)</td><td>@(a.Images - a.ImagesInDuplicateGroups - a.NearAdded)</td></tr>
+                <tr><td>+ Re-cropped / mirrored</td><td>@a.RecropAdded</td><td>@a.Unreliable</td><td>@a.ReliableKept</td></tr>
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>3 Methods</h2>
+        <p>
+            <b>Features.</b> Tissue pixels (outline mask, glare and shadow removed) are converted sRGB → linear → XYZ → CIELAB (D65).
+            Seventeen colour features are computed: absolute colour (mean and 25th-percentile a*, L*, b*, erythema index, chromaticity,
+            saturation, a* spread) and within-image contrasts (percentile differences of a* and erythema index, and others).
+            <b>Model.</b> L2-regularised logistic regression fitted by Newton's method, λ by inner 5-fold CV [8].
+            <b>Protocol (v3).</b> After exclusion, 8 demo images are held out; the rest are split 70/30 into development and a lockbox,
+            stratified by label. The feature set (absolute, relative or all) and λ are chosen by nested CV on development only; the
+            lockbox is evaluated once. We also report nested 5×5-fold CV with 5 repeats over all @n images, leave-one-hospital-out,
+            subgroups and bootstrap 95% CIs (2,000 resamples). <b>Leakage demonstration.</b> At each cleaning level, a memoriser
+            (1-nearest-neighbour on standardised absolute features) and the colour model (λ = 1) are compared under random 5-fold CV.
+            <b>Lighting.</b> Eyelids are re-lit with blackbody illuminants (Planckian-locus fit [4]) by von Kries scaling in linear sRGB, and
+            corrected by dividing by a white card photographed under the same light. <b>Software.</b> NumPy pipeline; a C# re-implementation
+            in the app is unit-tested to reproduce the Python features to 10⁻⁹; CI re-downloads the dataset and re-derives every number.
+        </p>
+    </section>
+
+    <section>
+        <h2>4 Results</h2>
+        <h3>4.1 Copies inflate benchmark scores</h3>
+        <table>
+            <caption>Table 2. AUC under random 5-fold CV (5 repeats). The memoriser knows nothing about anaemia.</caption>
+            <thead><tr><th>Data</th><th>Images</th><th>Memoriser</th><th>Colour model</th></tr></thead>
+            <tbody>
+            @foreach (var r in leak)
+            {
+                <tr><td>@r.Level</td><td>@r.Images</td><td>@r.Memoriser.ToString("0.00")</td><td>@r.ColourModel.ToString("0.00")</td></tr>
+            }
+            </tbody>
+        </table>
+        <p>
+            On the published data, @((a.LeakedShare * 100).ToString("0"))% of test images have a pixel-identical twin in the training folds
+            (identical-copy layer alone), and a twin-copying rule reaches @((a.MemoriserAccuracy * 100).ToString("0.0"))% accuracy. The memoriser's
+            advantage persists after removing identical and near-identical copies and disappears only when re-crops are removed, while
+            the colour model is stable across all levels, consistent with copies, not colour, driving the memoriser.
+        </p>
+
+        <h3>4.2 Honest accuracy</h3>
+        <table>
+            <caption>Table 3. Results by protocol version. Each version re-ran the full protocol with a new random lockbox.</caption>
+            <thead><tr><th>Version</th><th>Images kept</th><th>Nested-CV AUC</th><th>Lockbox AUC (95% CI)</th></tr></thead>
+            <tbody>
+            @foreach (var v in _m.ProtocolHistory)
+            {
+                <tr><td>v@(v.Version): @v.Rule</td><td>@v.ReliableImages</td><td>@v.NestedCvAuc.ToString("0.00")</td>
+                    <td>@v.LockboxAuc.ToString("0.00") (@v.LockboxAucCi95[0].ToString("0.00")–@v.LockboxAucCi95[1].ToString("0.00"), n = @v.LockboxN)</td></tr>
+            }
+            </tbody>
+        </table>
+        <p>
+            Nested CV is stable at about @_m.NestedCvAll.AucMean.ToString("0.00") across versions (v3 pooled 95% CI
+            @_m.NestedCvAll.AucPooledCi95[0].ToString("0.00")–@_m.NestedCvAll.AucPooledCi95[1].ToString("0.00")); the v3 lockbox
+            (@v3.LockboxAuc.ToString("0.00"), n = @v3.LockboxN) is too small to narrow this. Leave-one-hospital-out AUC is
+            @_m.LeaveOneHospitalOut.PooledAuc.ToString("0.00"). Development data selected the "@_m.ChosenFeatureSet" feature set
+            (@string.Join(", ", _m.FeatureSetSelection.Select(kv => $"{kv.Key} {kv.Value:0.00}"))). Estimating the haemoglobin value
+            itself did not beat predicting the mean (MAE @_m.HbRegression.Mae.ToString("0.00") vs @_m.HbRegression.BaselineMae.ToString("0.00") g/dL).
+        </p>
+        <div class="report-figs">
+            <RocChart Points="_m.Roc" Auc="_m.NestedCvAll.AucPooled" Label="(nested CV)" Operating="_m.OperatingPoints.Values" />
+            <DistributionChart Healthy="_model.Reference.HealthyHistogram" Anaemic="_model.Reference.AnaemicHistogram"
+                               HealthyLabel="Healthy (Hb ≥ 11)" AnaemicLabel="Anaemic (Hb < 11)" />
+        </div>
+        <p class="caption">Figure 1. Left: ROC curve (nested CV), with the app's two cut-offs. Right: out-of-fold pallor index of healthy and anaemic reference eyes.</p>
+
+        <h3>4.3 Lighting</h3>
+        <table>
+            <caption>Table 4. Mean shift in eyelid redness (a*) when re-lit, relative to the healthy-vs-anaemic gap of @_m.Lighting.DiseaseGap.ToString("0.0").</caption>
+            <thead><tr><th>Light</th><th>a* shift</th><th>× anaemia gap</th><th>After card correction</th></tr></thead>
+            <tbody>
+            @foreach (var il in _m.Lighting.Illuminants)
+            {
+                <tr><td>@il.Kelvin K</td><td>+@il.ShiftUncorrected.ToString("0.0")</td><td>@il.TimesDiseaseGap.ToString("0.0")×</td><td>@Math.Abs(il.ShiftWithCard).ToString("0.0")</td></tr>
+            }
+            </tbody>
+        </table>
+        <p>
+            In simulation the card correction is exact by construction; a real camera adds auto white balance and tone curves. The app's
+            Lighting Lab measures the residual on a real phone (protocol in the repository).
+        </p>
+
+        <h3>4.4 Should a photo decide who is tested?</h3>
+        <p>
+            At the app's cautious cut-off (pallor index ≥ @lowCut; sensitivity @((op[1] * 100).ToString("0"))%, specificity @((op[2] * 100).ToString("0"))%)
+            and 59.1% prevalence, photo-first screening of 1,000 girls needs @phone.BloodTests blood tests instead of 1,000 but misses
+            @phone.Missed of @phone.Anaemic anaemic girls. Where anaemia is this common, a photo should not replace testing; PaleCheck
+            is positioned as a prompt to get tested for people outside school screening.
+        </p>
+    </section>
+
+    <section>
+        <h2>5 The PaleCheck app</h2>
+        <p>
+            A Blazor WebAssembly progressive web app (English, Malayalam, Hindi) that runs offline; photos never leave the device. It
+            detects a printed white calibration card automatically, selects the eyelid with one tap (region growing in CIELAB),
+            rejects glare and shadow, corrects for the room light, averages up to five photos and reports a pallor index with an explicit
+            overlap zone, never a diagnosis. Every result links to the free Anaemia Mukt Bharat haemoglobin test [3]; a symptom checklist
+            recommends testing regardless of the photo. Two research tools ship with it: DupeScope (in-browser duplicate and re-encoding
+            detection for any image dataset) and the Benchmark Lab (Table 2, reproducible live).
+        </p>
+    </section>
+
+    <section>
+        <h2>6 Limitations</h2>
+        <ul>
+            <li>Only @(n + _m.Dataset.DemoHoldout) independent images remain; all estimates have wide intervals.</li>
+            <li>The re-crop search compares each image with its @RecropNeighbours nearest colour neighbours, so some copies may remain.</li>
+            <li>Reference eyes are young children in Ghana photographed without a colour reference; Indian teenagers need a new,
+                calibrated dataset and the 12 g/dL threshold [6].</li>
+            <li>Lighting results are simulated; real-camera validation is pending. Not a medical device.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>7 Ethics, data and AI use</h2>
+        <p>
+            No new human data were collected. CP-AnemiC is used under CC BY 4.0; we publish only derived manifests and colour features.
+            The app stores numbers, never photos, and only on the user's device. Code and text were developed with the help of an AI
+            coding assistant; every number in this report is generated by the published scripts and re-checked by continuous integration.
+            We intend to share the audit with the dataset's authors.
+        </p>
+    </section>
+
+    <section class="refs">
+        <h2>References</h2>
+        <ol>
+            <li>Appiahene P, Chaturvedi K, Asare JW, Donkoh ET, Prasad M. CP-AnemiC: a conjunctival pallor dataset and benchmark for anemia detection in children. Medicine in Novel Technology and Devices, 2023. doi:10.1016/j.medntd.2023.100244. Data: doi:10.17632/m53vz6b7fx.1.</li>
+            <li>Scott S, et al. Anaemia in Indians aged 10–19 years: prevalence, burden and associated factors at national and regional levels. Maternal &amp; Child Nutrition, 2022. doi:10.1111/mcn.13391.</li>
+            <li>Ministry of Health and Family Welfare, Government of India. Anemia Mukt Bharat: operational guidelines. National Health Mission, 2018.</li>
+            <li>Kang B, et al. Design of advanced color temperature control system for HDTV applications. Journal of the Korean Physical Society, 2002.</li>
+            <li>Dimauro G, et al. An intelligent non-invasive system for automated diagnosis of anemia exploiting a novel dataset. Artificial Intelligence in Medicine, 2023.</li>
+            <li>World Health Organization. Haemoglobin concentrations for the diagnosis of anaemia and assessment of severity. WHO/NMH/NHD/MNM/11.1, 2011.</li>
+            <li>Kapoor S, Narayanan A. Leakage and the reproducibility crisis in machine-learning-based science. Patterns, 2023.</li>
+            <li>Varma S, Simon R. Bias in error estimation when using cross-validation for model selection. BMC Bioinformatics, 2006.</li>
+        </ol>
+    </section>
+</article>
+
+@code {
+    private const int RecropNeighbours = 8;
+    private Metrics? _m;
+    private PallorModel? _model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _m = await Data.Metrics;
+        _model = await Data.Model;
+    }
+}

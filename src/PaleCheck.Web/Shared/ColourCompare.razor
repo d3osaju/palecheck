@@ -1,0 +1,26 @@
+@* "Why this score?": the measured (card-corrected) eyelid colour between the average healthy and the
+   average anaemic reference eyelid. Colours are converted from CIELAB, so they are only approximate on screen. *@
+@inject Lang L
+
+<div class="colour-compare">
+    <h3>@L["colour.title"]</h3>
+    <div class="swatches3">
+        <figure><span style="background: @Css(Healthy)"></span><figcaption>@L["colour.healthy"]</figcaption></figure>
+        <figure class="you"><span style="background: @Css(Yours)"></span><figcaption>@L["colour.yours"]</figcaption></figure>
+        <figure><span style="background: @Css(Anaemic)"></span><figcaption>@L["colour.anaemic"]</figcaption></figure>
+    </div>
+    <p class="small muted">@L["colour.note"]</p>
+</div>
+
+@code {
+    /// <summary>CIELAB (L*, a*, b*) triplets.</summary>
+    [Parameter, EditorRequired] public double[] Healthy { get; set; } = [];
+    [Parameter, EditorRequired] public double[] Yours { get; set; } = [];
+    [Parameter, EditorRequired] public double[] Anaemic { get; set; } = [];
+
+    private static string Css(double[] lab)
+    {
+        var (r, g, b) = ColorMath.LabToRgb(lab[0], lab[1], lab[2]);
+        return $"rgb({(int)Math.Round(r)}, {(int)Math.Round(g)}, {(int)Math.Round(b)})";
+    }
+}

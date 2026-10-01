@@ -1,7 +1,8 @@
-﻿@page "/"
+@page "/"
 @implements IDisposable
 @inject Lang L
 @inject AppData Data
+@inject Js Js
 
 <PageTitle>PaleCheck</PageTitle>
 
@@ -13,6 +14,10 @@
         <a class="btn primary" href="check">@L["home.start"]</a>
         <a class="btn" href="check?sample=@_sample">⚡ @L["home.tryNow"]</a>
         <a class="btn ghost" href="science">@L["home.science"]</a>
+        @if (_canInstall)
+        {
+            <button class="btn ghost" @onclick="InstallAsync">⬇ @L["home.install"]</button>
+        }
     </div>
 </section>
 
@@ -31,6 +36,17 @@
     </div>
 </section>
 
+<section class="panel tour">
+    <h2>@L["tour.title"]</h2>
+    <ol>
+        <li><a href="check?sample=@_sample">⚡ @L["tour.demo"]</a></li>
+        <li><a href="science#audit">🔍 @(_m is null ? "…" : L.F("tour.audit", _m.Audit.Images, _m.Audit.DistinctPhotographs))</a></li>
+        <li><a href="benchmark">🧪 @L["tour.bench"]</a></li>
+        <li><a href="science#screening">📊 @L["tour.screen"]</a></li>
+        <li><a href="palecheck-report.pdf" target="_blank">📄 @L["tour.report"]</a></li>
+    </ol>
+</section>
+
 <section class="panel">
     <h2>@L["home.how"]</h2>
     <ol class="how">
@@ -44,11 +60,30 @@
 @code {
     private Metrics? _m;
     private readonly int _sample = Random.Shared.Next(1, 9);
+    private bool _canInstall;
 
     protected override async Task OnInitializedAsync()
     {
         L.Changed += Refresh;
         _m = await Data.Metrics;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        // The browser offers installation a moment after load, so look twice.
+        for (int i = 0; i < 2 && !_canInstall; i++)
+        {
+            _canInstall = await Js.InvokeAsync<bool>("canInstall");
+            if (!_canInstall) await Task.Delay(3000);
+        }
+        if (_canInstall) StateHasChanged();
+    }
+
+    private async Task InstallAsync()
+    {
+        await Js.InvokeAsync<bool>("promptInstall");
+        _canInstall = false;
     }
 
     private void Refresh() => InvokeAsync(StateHasChanged);

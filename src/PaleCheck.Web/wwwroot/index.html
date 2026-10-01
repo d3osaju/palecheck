@@ -10,7 +10,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://palecheck.zetalabs.in/" />
     <meta property="og:title" content="PaleCheck — the truth about phone anaemia checks" />
-    <meta property="og:description" content="46% of the largest eyelid dataset is reused photos, and a yellow bulb matters more than anaemia. An honest, offline eyelid pallor check with a ₹1 calibration card." />
+    <meta property="og:description" content="710 patient records, only 312 photographs: 80% of the largest eyelid dataset is copies. And a yellow bulb matters more than anaemia. An honest, offline eyelid pallor check with a ₹1 calibration card." />
     <meta property="og:image" content="https://palecheck.zetalabs.in/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -43,7 +43,10 @@
         <span class="dismiss">×</span>
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
-    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+    <script>
+        navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });
+        window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); window.__installPrompt = e; });
+    </script>
 </body>
 
 </html>

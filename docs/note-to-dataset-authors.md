@@ -18,12 +18,15 @@ In every group, the copies are attached to different records in Anemia_Data_Coll
 hospital, age, sex and haemoglobin. For example, Image_018, 234, 369, 411, 476, 492, 520, 525, 565, 626 and 630
 share one image, with Hb ranging from 4.6 to 10.93 g/dL.
 
-A second check for near-identical images (re-cropped or re-encoded copies) found 12 more images in 7 groups,
-also under different records; for example Image_342, 343, 344 and 346 appear to be one photo cropped four ways.
+Two further checks found more images that share a photograph with another record: 12 re-encoded or resized
+copies, and 245 images that are the same photograph cut out with a different outline (7 of them mirrored).
+For example, Image_375 and Image_376 overlap pixel-for-pixel when aligned, but are listed with different ages,
+sexes and hospitals. Altogether the 710 records appear to contain about 312 distinct photographs.
 
 Under random 5-fold cross-validation, about 42% of test images have an identical copy in the training folds,
-which could affect benchmark results. My scripts (`audit_duplicates.py` and `near_duplicates.py`) and the
-grouped list of affected images are attached so you can check them.
+and a 1-nearest-neighbour model reaches AUC 0.88 without learning anything about pallor, which could affect
+benchmark results. My scripts (`audit_duplicates.py`, `near_duplicates.py`) and the grouped list of affected
+images are attached so you can check them.
 
 I may have misunderstood how the images were collected. If so, I'd be grateful to learn what I missed.
 

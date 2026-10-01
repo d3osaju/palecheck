@@ -15,10 +15,12 @@ def get(m, path):
 
 EXACT = [
     "audit.duplicate_groups", "audit.images_in_duplicate_groups", "audit.near_identical_pairs",
+    "audit.recrop_pairs", "audit.mirrored_copy_pairs", "audit.distinct_photographs",
     "audit.unreliable_images", "audit.reliable_images_kept", "dataset.lockbox", "dataset.development",
 ]
 CLOSE = [
     "audit.memoriser_accuracy_under_random_5fold", "lockbox.auc", "nested_cv_all.auc_mean",
+    "leakage_demo.0.memoriser", "leakage_demo.3.memoriser", "leakage_demo.3.colour_model",
     "leave_one_hospital_out.pooled_auc", "lighting_simulation.disease_gap_a_star",
     "lighting_simulation.illuminants.0.shift_vs_disease_gap_uncorrected",
 ]

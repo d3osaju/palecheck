@@ -1,0 +1,85 @@
+@* "Should a photo decide who gets a blood test?" — per-1,000 outcomes at a chosen prevalence and cut-off,
+   using sensitivity/specificity from the nested cross-validation (metrics.operating_curve). *@
+@{
+    var point = Curve[Math.Clamp(_cutoff, 0, Curve.Length - 1)];
+    double sens = point[1], spec = point[2];
+    var phone = Screening.PhoneFirst(_prevalence, sens, spec);
+    var all = Screening.TestEveryone(_prevalence);
+    int saved = all.BloodTests - phone.BloodTests;
+    // Each square is 10 people, filled in the order: found, missed, false alarm, cleared.
+    int found = (int)Math.Round(phone.Found / 10.0), missed = (int)Math.Round(phone.Missed / 10.0);
+    int alarms = (int)Math.Round(phone.FalseAlarms / 10.0);
+    int anaemicSquares = Math.Min(100, found + missed);
+}
+<div class="calc">
+    <div class="calc-controls">
+        <div>
+            <span class="calc-label">Who is being screened?</span>
+            <div class="seg wrap">
+                @foreach (var (name, p) in Presets)
+                {
+                    <button type="button" class="@(Math.Abs(_prevalence - p) < 1e-9 ? "on" : "")" @onclick="() => _prevalence = p">@name</button>
+                }
+            </div>
+            <label class="slider wide">Anaemic: <strong>@((_prevalence * 100).ToString("0.#"))%</strong>
+                <input type="range" min="0.05" max="0.8" step="0.005" value="@_prevalence" @oninput="e => _prevalence = Parse(e)" />
+            </label>
+        </div>
+        <label class="slider wide">Flag for a blood test if pallor index ≥ <strong>@_cutoff</strong>
+            <input type="range" min="0" max="100" step="1" value="@_cutoff" @oninput="e => _cutoff = (int)Parse(e)" />
+        </label>
+        <p class="small muted">At this cut-off, the photo flags @((sens * 100).ToString("0"))% of anaemic eyes and
+            @(((1 - spec) * 100).ToString("0"))% of healthy ones (nested cross-validation).</p>
+    </div>
+
+    <div class="calc-out">
+        <div class="waffle" role="img" aria-label="1,000 people, each square is 10">
+            @for (int i = 0; i < 100; i++)
+            {
+                var cls = i < found ? "found" : i < anaemicSquares ? "missed" : i < anaemicSquares + alarms ? "alarm" : "clear";
+                <span class="@cls"></span>
+            }
+        </div>
+        <div class="waffle-key small">
+            <span><i class="found"></i>anaemic, flagged</span><span><i class="missed"></i>anaemic, missed</span>
+            <span><i class="alarm"></i>healthy, flagged</span><span><i class="clear"></i>healthy, not flagged</span>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Per 1,000 people</th><th>Photo first</th><th>Blood test for everyone</th></tr></thead>
+                <tbody>
+                    <tr><td>Blood tests needed</td><td>@phone.BloodTests</td><td>@all.BloodTests</td></tr>
+                    <tr><td>Anaemic people found</td><td>@phone.Found</td><td>@all.Found</td></tr>
+                    <tr><td>Anaemic people missed</td><td class="bad">@phone.Missed</td><td>0</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="callout">
+            @if (phone.Missed == 0)
+            {
+                <span>At this cut-off the photo flags almost everyone, so it saves nothing over testing everyone.</span>
+            }
+            else
+            {
+                <span>Photo first saves <strong>@saved</strong> blood tests but misses <strong>@phone.Missed</strong> anaemic people:
+                    @((saved / (double)phone.Missed).ToString("0.0")) tests saved per person missed.</span>
+            }
+        </p>
+    </div>
+</div>
+
+@code {
+    /// <summary>[cut-off, sensitivity, specificity] for cut-offs 0..100.</summary>
+    [Parameter, EditorRequired] public double[][] Curve { get; set; } = [];
+    [Parameter] public int InitialCutoff { get; set; } = 40;
+
+    private static readonly (string, double)[] Presets =
+        [("Girls 15–19, India", 0.591), ("Girls 15–19, Kerala", 0.325), ("Low (10%)", 0.10)];
+
+    private double _prevalence = 0.591;
+    private int _cutoff;
+
+    protected override void OnInitialized() => _cutoff = InitialCutoff;
+
+    private static double Parse(ChangeEventArgs e) => double.Parse(e.Value!.ToString()!, CultureInfo.InvariantCulture);
+}

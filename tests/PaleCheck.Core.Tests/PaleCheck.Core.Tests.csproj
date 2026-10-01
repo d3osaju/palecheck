@@ -25,6 +25,7 @@
   <ItemGroup>
     <None Include="parity\**" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\PaleCheck.Web\wwwroot\model\model.json" Link="model.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\PaleCheck.Web\wwwroot\data\cp-anemic-features.json" Link="cp-anemic-features.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

@@ -1,26 +1,26 @@
 [
   {
     "file": "samples/sample-1.png",
-    "sourceId": "Image_094",
-    "hb": 10.2,
+    "sourceId": "Image_069",
+    "hb": 8.0,
     "anaemic": true
   },
   {
     "file": "samples/sample-2.png",
-    "sourceId": "Image_120",
-    "hb": 7.3,
-    "anaemic": true
-  },
-  {
-    "file": "samples/sample-3.png",
-    "sourceId": "Image_398",
+    "sourceId": "Image_099",
     "hb": 10.2,
     "anaemic": true
   },
   {
+    "file": "samples/sample-3.png",
+    "sourceId": "Image_268",
+    "hb": 7.0,
+    "anaemic": true
+  },
+  {
     "file": "samples/sample-4.png",
-    "sourceId": "Image_461",
-    "hb": 9.2,
+    "sourceId": "Image_338",
+    "hb": 10.5,
     "anaemic": true
   },
   {
@@ -31,20 +31,20 @@
   },
   {
     "file": "samples/sample-6.png",
-    "sourceId": "Image_130",
-    "hb": 12.0,
+    "sourceId": "Image_073",
+    "hb": 14.2,
     "anaemic": false
   },
   {
     "file": "samples/sample-7.png",
-    "sourceId": "Image_394",
-    "hb": 12.8,
+    "sourceId": "Image_351",
+    "hb": 13.3,
     "anaemic": false
   },
   {
     "file": "samples/sample-8.png",
-    "sourceId": "Image_570",
-    "hb": 12.1,
+    "sourceId": "Image_571",
+    "hb": 12.0,
     "anaemic": false
   }
 ]

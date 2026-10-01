@@ -52,6 +52,64 @@ def find_near_pairs(items):
     return pairs
 
 
+RECROP_RMS_MAX = 4.0      # RMS colour difference (0-255) on the overlap at the best alignment
+RECROP_MIN_OVERLAP = 0.5  # the overlap must cover half of the smaller cut-out
+RECROP_NEIGHBOURS = 8     # candidates: each image's nearest neighbours in colour-feature space
+
+
+def _masked(rgba, step=2):
+    a = rgba[::step, ::step].astype(np.float64)
+    m = (a[..., 3] >= 128).astype(np.float64)
+    return a[..., :3] * m[..., None], m
+
+
+def _corr(a, b, shape):
+    """Cross-correlation of a with b for every shift, via FFT (zero-padded to `shape`)."""
+    return np.fft.irfft2(np.fft.rfft2(a, shape) * np.conj(np.fft.rfft2(b, shape)), shape)
+
+
+def recrop_rms(rgba_a, rgba_b):
+    """Smallest RMS colour difference between two cut-outs over all translations where their masks overlap
+    enough. Two different crops of the same photograph give ~0; different photographs give much more."""
+    A, ma = _masked(rgba_a)
+    B, mb = _masked(rgba_b)
+    shape = (A.shape[0] + B.shape[0], A.shape[1] + B.shape[1])
+    overlap = _corr(ma, mb, shape)
+    ssd = _corr((A ** 2).sum(-1), mb, shape) + _corr(ma, (B ** 2).sum(-1), shape)
+    for ch in range(3):
+        ssd -= 2 * _corr(A[..., ch], B[..., ch], shape)
+    need = RECROP_MIN_OVERLAP * min(ma.sum(), mb.sum())
+    valid = overlap >= need
+    if not valid.any():
+        return float("inf")
+    msd = np.where(valid, ssd / np.maximum(overlap, 1) / 3.0, np.inf)
+    return float(np.sqrt(max(msd.min(), 0.0)))
+
+
+def find_recrop_pairs(items, features):
+    """items: dicts with 'id' and 'rgba'; features: (n, d) colour features used to pick candidates.
+    Returns [(id_a, id_b, rms, mirrored)] for pairs that are different crops of the same photograph,
+    including left-right mirrored copies.
+
+    Validation (see README): comparing the same candidate pairs with one image mirrored gives a null
+    distribution; at RMS <= 4 it only matches true mirror-image copies (RMS 0), next-lowest 4.19."""
+    Z = (features - features.mean(0)) / features.std(0)
+    D = np.sqrt(((Z[:, None, :] - Z[None, :, :]) ** 2).sum(-1))
+    np.fill_diagonal(D, np.inf)
+    cands = {tuple(sorted((i, int(j)))) for i in range(len(items)) for j in np.argsort(D[i])[:RECROP_NEIGHBOURS]}
+    pairs = []
+    for i, j in sorted(cands):
+        if items[i]["rgba"].tobytes() == items[j]["rgba"].tobytes():
+            continue
+        a, b = items[i]["rgba"], items[j]["rgba"]
+        rms = recrop_rms(a, b)
+        rms_mirror = recrop_rms(a, b[:, ::-1])
+        best = min(rms, rms_mirror)
+        if best <= RECROP_RMS_MAX:
+            pairs.append((items[i]["id"], items[j]["id"], round(best, 2), rms_mirror < rms))
+    return pairs
+
+
 if __name__ == "__main__":
     root = Path(__file__).resolve().parent.parent / "data" / "raw" / "cp-anemic"
     items = [{"id": p.stem, "rgba": np.asarray(Image.open(p).convert("RGBA"))} for p in sorted(root.glob("*/*.png"))]

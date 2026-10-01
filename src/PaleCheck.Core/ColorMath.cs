@@ -27,6 +27,19 @@ public static class ColorMath
         static double F(double t) => t > 0.008856 ? Math.Cbrt(t) : 7.787 * t + 16.0 / 116.0;
     }
 
+    /// <summary>CIELAB (D65) back to sRGB 0..255, clamped to the displayable range.</summary>
+    public static (double R, double G, double B) LabToRgb(double l, double a, double b)
+    {
+        double fy = (l + 16) / 116, fx = fy + a / 500, fz = fy - b / 200;
+        double x = 0.95047 * Inv(fx), y = Inv(fy), z = 1.08883 * Inv(fz);
+        double r = 3.2404542 * x - 1.5371385 * y - 0.4985314 * z;
+        double g = -0.9692660 * x + 1.8760108 * y + 0.0415560 * z;
+        double bl = 0.0556434 * x - 0.2040259 * y + 1.0572252 * z;
+        return (LinearToSrgb(r) * 255, LinearToSrgb(g) * 255, LinearToSrgb(bl) * 255);
+
+        static double Inv(double t) => t * t * t > 0.008856 ? t * t * t : (t - 16.0 / 116) / 7.787;
+    }
+
     /// <summary>
     /// Von Kries correction: scales each linear channel so the photographed white card becomes
     /// neutral, which removes the colour cast of the room light. Pixels are RGB triples, 0..255.

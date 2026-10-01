@@ -1,0 +1,219 @@
+@page "/benchmark"
+@inject AppData Data
+
+<PageTitle>Benchmark Lab · PaleCheck</PageTitle>
+
+<p class="kicker">Interactive experiment</p>
+<h1>Benchmark Lab: watch a model cheat</h1>
+<p class="lede">
+    Train and test models on the published CP-AnemiC images, right here in your browser. The <strong>memoriser</strong>
+    knows nothing about anaemia: it copies the label of the most similar image it has already seen. If it scores well,
+    the test set is leaking copies of the training set.
+</p>
+
+@if (_data is null)
+{
+    <p class="muted">Loading 710 images' colour features…</p>
+    return;
+}
+
+<section class="panel">
+    <h2>The 30-second experiment</h2>
+    <p class="small">Both models, at each level of cleaning, with an ordinary random 5-fold split (3 repeats).</p>
+    <div class="actions">
+        <button class="btn primary" disabled="@_busy" @onclick="RunKeyExperimentsAsync">▶ Run the four key experiments</button>
+        @if (_busy)
+        {
+            <span class="small muted">Running @_progress…</span>
+        }
+    </div>
+    <figure class="chart bench">
+        <svg viewBox="0 0 360 230" role="img" aria-label="AUC of the memoriser and PaleCheck's model at each cleaning level">
+            @for (int t = 5; t <= 10; t++)
+            {
+                var v = t / 10.0;
+                <g>
+                    <line x1="34" x2="352" y1="@Y(v)" y2="@Y(v)" class="grid" />
+                    <text x="28" y="@(Y(v) + 3)" text-anchor="end" class="tick">@v.ToString("0.0")</text>
+                </g>
+            }
+            <line x1="34" x2="352" y1="@Y(0.835)" y2="@Y(0.835)" class="refline" />
+            <text x="352" y="@(Y(0.835) - 4)" text-anchor="end" class="tick">published CNN 0.835</text>
+            @for (int i = 0; i < Levels.Length; i++)
+            {
+                var x0 = 44 + i * 78;
+                var mem = _key[i, 0];
+                var log = _key[i, 1];
+                <g>
+                    @if (mem is double m)
+                    {
+                        <g>
+                            <rect x="@x0" y="@Y(Math.Max(m, 0.5))" width="28" height="@(Y(0.5) - Y(Math.Max(m, 0.5)))" class="bar mem" />
+                            <text x="@(x0 + 14)" y="@(Y(m) - 4)" text-anchor="middle" class="val">@m.ToString("0.00")</text>
+                        </g>
+                    }
+                    @if (log is double l)
+                    {
+                        <g>
+                            <rect x="@(x0 + 30)" y="@Y(Math.Max(l, 0.5))" width="28" height="@(Y(0.5) - Y(Math.Max(l, 0.5)))" class="bar log" />
+                            <text x="@(x0 + 44)" y="@(Y(l) - 4)" text-anchor="middle" class="val">@l.ToString("0.00")</text>
+                        </g>
+                    }
+                    <text x="@(x0 + 29)" y="214" text-anchor="middle" class="tick">@Levels[i].Short</text>
+                    <text x="@(x0 + 29)" y="225" text-anchor="middle" class="tick muted">@Count(Levels[i].Filter) imgs</text>
+                </g>
+            }
+        </svg>
+        <figcaption><span class="key mem"></span>memoriser (1-nearest-neighbour) <span class="key log"></span>PaleCheck's colour model · AUC, 0.5 = coin flip</figcaption>
+    </figure>
+    @if (_key[3, 0] is double clean && _key[0, 0] is double leaky)
+    {
+        <p class="callout">
+            The memoriser scores <strong>@leaky.ToString("0.00")</strong> on the published data, higher than the published deep-learning
+            benchmark. Remove every copy and it falls to <strong>@clean.ToString("0.00")</strong>. PaleCheck's simple colour model stays
+            near <strong>@(_key[3, 1]?.ToString("0.00"))</strong> throughout: it was never memorising.
+        </p>
+    }
+</section>
+
+<section class="panel">
+    <h2>Design your own experiment</h2>
+    <div class="form-grid bench-form">
+        <label>Data
+            <select @bind="_filter">
+                @foreach (var l in Levels)
+                {
+                    <option value="@l.Filter">@l.Long (@Count(l.Filter))</option>
+                }
+            </select>
+        </label>
+        <label>Split
+            <select @bind="_split">
+                <option value="@SplitKind.RandomImages">Random 5-fold (by image)</option>
+                <option value="@SplitKind.GroupedCopies">Grouped 5-fold (copies stay together)</option>
+                <option value="@SplitKind.LeaveHospitalOut">Leave one hospital out</option>
+            </select>
+        </label>
+        <label>Model
+            <select @bind="_model">
+                <option value="@BenchModel.Memoriser">Memoriser (1-nearest-neighbour)</option>
+                <option value="@BenchModel.Logistic">PaleCheck's colour model (logistic)</option>
+            </select>
+        </label>
+        <button class="btn primary" disabled="@_busy" @onclick="RunOneAsync">Run</button>
+    </div>
+    @if (_runs.Count > 0)
+    {
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Data</th><th>Split</th><th>Model</th><th>Images</th><th>AUC</th><th>Accuracy</th><th>Test images with a twin in training</th></tr></thead>
+                <tbody>
+                @foreach (var r in _runs.AsEnumerable().Reverse())
+                {
+                    <tr>
+                        <td>@Levels.First(l => l.Filter == r.Filter).Long</td>
+                        <td>@SplitName(r.Split)</td>
+                        <td>@(r.Model == BenchModel.Memoriser ? "Memoriser" : "Colour model")</td>
+                        <td>@r.Result.Images</td>
+                        <td><strong>@r.Result.Auc.ToString("0.00")</strong></td>
+                        <td>@((r.Result.Accuracy * 100).ToString("0"))%</td>
+                        <td>@((r.Result.LeakedShare * 100).ToString("0"))%</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+    <ul class="small">
+        <li><strong>Random 5-fold</strong> is what most papers do. Copies of one photograph can land in both training and test.</li>
+        <li><strong>Grouped</strong> keeps every copy of a photograph in the same fold, so the test set can't contain a twin, even without deleting anything.</li>
+        <li><strong>Leave one hospital out</strong> tests on a clinic the model never saw. Copies here are filed under <em>different</em> hospitals, so even this split leaks.</li>
+    </ul>
+</section>
+
+<section class="panel small">
+    <h2>What's being computed</h2>
+    <p>
+        Each image is reduced to the same @_data.Features.Length colour features PaleCheck measures (CIELAB redness, lightness,
+        erythema index and others), standardised on the training folds. The memoriser predicts the label of the nearest training
+        image; the colour model is L2-regularised logistic regression (λ = @Benchmark.Lambda). Scores are pooled across folds into one
+        AUC per repeat. The code is <code>src/PaleCheck.Core/Benchmark.cs</code>, and a unit test checks that it reproduces the Python results.
+        Features derived from CP-AnemiC (Appiahene et al., CC BY 4.0).
+    </p>
+    <p><a href="science#audit">How the copies were found →</a> · <a href="dupescope">Check your own dataset →</a></p>
+</section>
+
+@code {
+    private record Level(CopyFilter Filter, string Short, string Long);
+    private record Run(CopyFilter Filter, SplitKind Split, BenchModel Model, BenchResult Result);
+
+    private static readonly Level[] Levels =
+    [
+        new(CopyFilter.Published, "published", "As published"),
+        new(CopyFilter.NoIdentical, "−identical", "Identical copies removed"),
+        new(CopyFilter.NoNearIdentical, "−near", "+ near-identical removed"),
+        new(CopyFilter.NoCopies, "−re-crops", "+ re-cropped removed (all copies)"),
+    ];
+
+    private BenchmarkData? _data;
+    private readonly double?[,] _key = new double?[4, 2];
+    private readonly List<Run> _runs = [];
+    private CopyFilter _filter = CopyFilter.Published;
+    private SplitKind _split = SplitKind.RandomImages;
+    private BenchModel _model = BenchModel.Memoriser;
+    private bool _busy;
+    private string _progress = "";
+
+    /// <summary>/benchmark?run=1 runs the four key experiments straight away (one-click link for judges).</summary>
+    [SupplyParameterFromQuery(Name = "run")] public int? AutoRun { get; set; }
+
+    protected override async Task OnInitializedAsync() => _data = await Data.Benchmark;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_autoRan || _data is null || AutoRun != 1) return;
+        _autoRan = true;
+        await RunKeyExperimentsAsync();
+        StateHasChanged();
+    }
+
+    private bool _autoRan;
+
+    private static double Y(double auc) => 200 - (auc - 0.5) / 0.5 * 185;
+
+    private int Count(CopyFilter f) => _data!.Samples.Count(s => s.CopyLevel == 0 || s.CopyLevel > (int)f);
+
+    private static string SplitName(SplitKind s) => s switch
+    {
+        SplitKind.RandomImages => "Random",
+        SplitKind.GroupedCopies => "Grouped",
+        _ => "By hospital",
+    };
+
+    private async Task RunKeyExperimentsAsync()
+    {
+        _busy = true;
+        Array.Clear(_key);
+        for (int i = 0; i < Levels.Length; i++)
+        {
+            for (int m = 0; m < 2; m++)
+            {
+                _progress = $"{i * 2 + m + 1}/8";
+                StateHasChanged();
+                await Task.Delay(1);   // let the browser paint between runs
+                _key[i, m] = Benchmark.Run(_data!.Samples, Levels[i].Filter, SplitKind.RandomImages,
+                    m == 0 ? BenchModel.Memoriser : BenchModel.Logistic).Auc;
+            }
+        }
+        _busy = false;
+    }
+
+    private async Task RunOneAsync()
+    {
+        _busy = true;
+        StateHasChanged();
+        await Task.Delay(1);
+        _runs.Add(new Run(_filter, _split, _model, Benchmark.Run(_data!.Samples, _filter, _split, _model)));
+        _busy = false;
+    }
+}

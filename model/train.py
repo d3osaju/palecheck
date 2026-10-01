@@ -8,9 +8,10 @@ Inputs: data/raw/cp-anemic/{Anemic,Non-anemic}/*.png + Anemia_Data_Collection_Sh
 Writes: model/out/{model.json,metrics.json} (+ the web app's copies), demo samples
         for the app, and parity fixtures for the C# tests.
 
-Protocol v2 (v1 is recorded in metrics.json under protocol_history):
-  1. Drop every image whose pixels appear under more than one patient record, exactly (v1) or as a
-     re-cropped / re-encoded near-identical copy (added in v2 after DupeScope found them).
+Protocol v3 (v1 and v2 are recorded in metrics.json under protocol_history):
+  1. Drop every image whose photograph appears under more than one patient record: pixel-identical (v1),
+     re-encoded / resized near-identical (v2, found by DupeScope), or the same photograph cut out with a
+     different outline (v3, found by the Benchmark Lab's memoriser).
   2. Hold out 8 demo images (never used anywhere else).
   3. Split the rest 70/30 into development and lockbox, stratified by label.
   4. On development only: choose the feature set (absolute / relative / all) by nested CV.
@@ -29,7 +30,8 @@ import openpyxl
 from PIL import Image
 
 import features as F
-from near_duplicates import HASH_BITS_MAX, MAD_MAX, find_near_pairs
+from near_duplicates import (HASH_BITS_MAX, MAD_MAX, RECROP_MIN_OVERLAP, RECROP_NEIGHBOURS, RECROP_RMS_MAX,
+                             find_near_pairs, find_recrop_pairs)
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "cp-anemic"
@@ -110,32 +112,49 @@ def audit(items, rng):
         leaked_frac.append(leaked / len(y))
         mem_acc.append(correct / len(y))
 
-    # Second pass (found with DupeScope): re-cropped / re-encoded copies that exact hashing misses.
+    # Second pass (found with DupeScope): re-encoded / resized copies that exact hashing misses.
     near_pairs = find_near_pairs(items)
-    parent = {it["id"]: it["id"] for it in items}
+    # Third pass (found with the Benchmark Lab): the same photograph cut out with a different outline.
+    X9 = np.array([F.extract(F.valid_pixels(it["rgba"]))[:len(F.ABSOLUTE)] for it in items])
+    recrop_pairs = find_recrop_pairs(items, X9)
 
-    def find(x):
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
+    def clusters_from(edge_lists):
+        parent = {it["id"]: it["id"] for it in items}
 
-    for g in dup_groups:
-        for it in g[1:]:
-            parent[find(it["id"])] = find(g[0]["id"])
-    for a, b, _ in near_pairs:
-        parent[find(a)] = find(b)
-    clusters = defaultdict(list)
-    for it in items:
-        clusters[find(it["id"])].append(it)
-    multi = [c for c in clusters.values() if len(c) > 1]
-    unreliable = {it["id"] for c in multi for it in c}
+        def find(x):
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+
+        for g in dup_groups:
+            for it in g[1:]:
+                parent[find(it["id"])] = find(g[0]["id"])
+        for edges in edge_lists:
+            for a, b, *_ in edges:
+                parent[find(a)] = find(b)
+        groups = defaultdict(list)
+        for it in items:
+            groups[find(it["id"])].append(it)
+        return [c for c in groups.values() if len(c) > 1]
+
+    def members(cs):
+        return {it["id"] for c in cs for it in c}
+
+    def count_differing(cs):
+        return sum(1 for c in cs if len({(it["hb"], it["age_months"], it["gender"], it["hospital"]) for it in c}) > 1)
+
+    level2 = clusters_from([near_pairs])
+    multi = clusters_from([near_pairs, recrop_pairs])
+    unreliable = members(multi)
+    levels = {"identical": in_dups, "near": members(level2), "recrop": unreliable}
     near_ids = {a for a, _, _ in near_pairs} | {b for _, b, _ in near_pairs}
-    near_clusters = [c for c in multi if any(it["id"] in near_ids for it in c)]
-    near_differing = sum(1 for c in near_clusters
-                         if len({(it["hb"], it["age_months"], it["gender"], it["hospital"]) for it in c}) > 1)
+    near_clusters = [c for c in level2 if any(it["id"] in near_ids for it in c)]
+    recrop_ids = {p[0] for p in recrop_pairs} | {p[1] for p in recrop_pairs}
+    recrop_clusters = [c for c in multi if any(it["id"] in recrop_ids for it in c)]
+    near_differing = count_differing(near_clusters)
 
-    return unreliable, multi, {
+    return unreliable, multi, levels, {
         "images_in_sheet_and_folders": len(items),
         "label_folder_vs_sheet_mismatches": sum(1 for it in items if it["label"] != it["sheet_label"]),
         "duplicate_groups": len(dup_groups),
@@ -154,9 +173,19 @@ def audit(items, rng):
         "near_identical_pairs": len(near_pairs),
         "near_identical_rule": f"64-bit dHash within {HASH_BITS_MAX} bits, aspect ratio within 5%, mean absolute "
                                f"pixel difference <= {MAD_MAX} on a 128x64 white-flattened grid",
-        "images_added_by_near_identical": len(unreliable - in_dups),
+        "images_added_by_near_identical": len(levels["near"] - in_dups),
         "clusters_with_near_identical_copies": len(near_clusters),
         "near_clusters_listing_different_patients": near_differing,
+        "recrop_pairs": len(recrop_pairs),
+        "mirrored_copy_pairs": sum(1 for p in recrop_pairs if p[3]),
+        "recrop_rule": f"same photograph, different outline: at the best translation, RMS colour difference "
+                       f"<= {RECROP_RMS_MAX} over an overlap of >= {int(RECROP_MIN_OVERLAP * 100)}% of the smaller "
+                       f"cut-out; candidates are each image's {RECROP_NEIGHBOURS} nearest colour neighbours",
+        "images_added_by_recrop": len(unreliable - levels["near"]),
+        "clusters_with_recrops": len(recrop_clusters),
+        "recrop_clusters_listing_different_patients": count_differing(recrop_clusters),
+        "copy_clusters_total": len(multi),
+        "distinct_photographs": len(items) - len(unreliable) + len(multi),
         "unreliable_images": len(unreliable),
         "share_unreliable": round(len(unreliable) / len(items), 4),
         "reliable_images_kept": len(items) - len(unreliable),
@@ -404,12 +433,67 @@ def write_manifests(raw, clusters, demo, rest, lock_mask):
                     w.writerow([gi, len(c), copies[it["hash"]]] + row(it) + [it["hash"]])
 
 
+def write_benchmark_data(raw, clusters, levels, cols):
+    """Colour features of all 710 published images, with copy-group ids, for the in-browser Benchmark Lab."""
+    exact_ids, cluster_of = {}, {}
+    for it in raw:
+        exact_ids.setdefault(it["hash"], len(exact_ids))
+    for ci, c in enumerate(clusters):
+        for it in c:
+            cluster_of[it["id"]] = ci
+    hospitals = sorted({it["hospital"] for it in raw})
+    rows = []
+    for it in raw:
+        x = F.extract(F.valid_pixels(it["rgba"]))[cols]
+        # k: the first audit layer that flags this image (0 = never: 1 identical, 2 near-identical, 3 re-crop).
+        k = next((i for i, lvl in enumerate(("identical", "near", "recrop"), 1) if it["id"] in levels[lvl]), 0)
+        rows.append({"id": it["id"], "y": int(it["label"]), "h": hospitals.index(it["hospital"]),
+                     "e": exact_ids[it["hash"]], "c": cluster_of.get(it["id"], -1), "k": k,
+                     "x": [round(float(v), 4) for v in x]})
+    data = {"source": "CP-AnemiC (Appiahene et al. 2023), CC BY 4.0; features computed by PaleCheck",
+            "features": [F.ALL_FEATURES[c] for c in cols], "hospitals": hospitals, "rows": rows}
+    (WEB / "data").mkdir(parents=True, exist_ok=True)
+    (WEB / "data" / "cp-anemic-features.json").write_text(json.dumps(data, separators=(",", ":")))
+    return rows
+
+
+def leakage_demo(rows, rng, repeats=5):
+    """Memoriser (1-nearest-neighbour) vs the colour model at each cleaning level, random 5-fold CV.
+    The same experiment runs live in the app's Benchmark Lab (src/PaleCheck.Core/Benchmark.cs)."""
+    X = np.array([r["x"] for r in rows])
+    y = np.array([r["y"] for r in rows])
+    k = np.array([r["k"] for r in rows])
+    out = []
+    for removed, name in [(0, "published"), (1, "identical removed"), (2, "near-identical removed"),
+                          (3, "re-crops removed")]:
+        idx = np.where((k == 0) | (k > removed))[0]
+        Xi, yi = X[idx], y[idx]
+        res = {}
+        for model in ("memoriser", "colour_model"):
+            aucs = []
+            for _ in range(repeats):
+                s = np.zeros(len(idx))
+                for f in stratified_folds(yi, OUTER_FOLDS, rng):
+                    tr = np.setdiff1d(np.arange(len(idx)), f)
+                    mu, sd = standardize_fit(Xi[tr])
+                    A, B = (Xi[tr] - mu) / sd, (Xi[f] - mu) / sd
+                    if model == "memoriser":
+                        s[f] = yi[tr][((B[:, None] - A[None]) ** 2).sum(-1).argmin(1)]
+                    else:
+                        w, b = logreg_fit(A, yi[tr], 1.0)
+                        s[f] = logreg_predict(B, w, b)
+                aucs.append(auc(yi, s))
+            res[model] = round(float(np.mean(aucs)), 4)
+        out.append({"level": name, "images": int(len(idx)), **res})
+    return out
+
+
 # ---------------------------------------------------------------- main
 
 def main():
     rng = np.random.default_rng(SEED)
     raw = load_raw()
-    unreliable, clusters, audit_report = audit(raw, rng)
+    unreliable, clusters, levels, audit_report = audit(raw, rng)
     print("AUDIT:", {k: v for k, v in audit_report.items() if k != "largest_group_example"})
 
     reliable = [it for it in raw if it["id"] not in unreliable and it["label"] == it["sheet_label"]]
@@ -511,15 +595,28 @@ def main():
         "thresholds": {"low": round(float(a_low), 4), "high": round(float(a_high), 4)},
         "pixelRules": {"alphaMin": F.ALPHA_MIN, "glareMin": F.GLARE_MIN, "darkMax": F.DARK_MAX},
         "reference": {"healthyHistogram": histogram(oof[y_all == 0]),
-                      "anaemicHistogram": histogram(oof[y_all == 1])},
+                      "anaemicHistogram": histogram(oof[y_all == 1]),
+                      # Average eyelid colour (CIELAB L*, a*, b*) of each class, for the result's swatches.
+                      "healthyLab": [round(float(X_all[y_all == 0, j].mean()), 3) for j in (2, 0, 3)],
+                      "anaemicLab": [round(float(X_all[y_all == 1, j].mean()), 3) for j in (2, 0, 3)]},
     }
+    # Sensitivity/specificity at every whole pallor-index cut-off, for the screening calculator.
+    operating_curve = []
+    for t in range(101):
+        c = confusion(y_all, oof, t / 100.0)
+        operating_curve.append([t, c["sensitivity"], c["specificity"]])
+    # The lab demonstrates memorisation, so it always uses the plain colour features, whatever the model chose.
+    bench_rows = write_benchmark_data(raw, clusters, levels, [F.ALL_FEATURES.index(c) for c in F.ABSOLUTE])
     metrics = {
         "audit": audit_report,
         "protocol_history": [
             # v1 ran on 2026-10-01 with exact-duplicate removal only; its lockbox was opened once.
             {"version": 1, "rule": "exact duplicates removed", "reliable_images": 398, "lockbox_n": 117,
              "lockbox_auc": 0.6818, "lockbox_auc_ci95": [0.582, 0.7756], "nested_cv_auc": 0.6419},
-            {"version": 2, "rule": "exact and near-identical copies removed",
+            # v2 ran on 2026-10-01 after DupeScope found near-identical copies.
+            {"version": 2, "rule": "identical and near-identical copies removed", "reliable_images": 386,
+             "lockbox_n": 113, "lockbox_auc": 0.6481, "lockbox_auc_ci95": [0.5461, 0.75], "nested_cv_auc": 0.6469},
+            {"version": 3, "rule": "identical, near-identical and re-cropped copies removed",
              "reliable_images": len(reliable), "lockbox_n": int(lock.sum()),
              "lockbox_auc": round(lock_auc, 4), "lockbox_auc_ci95": lock_ci,
              "nested_cv_auc": round(float(np.mean(cv_aucs)), 4)},
@@ -555,6 +652,8 @@ def main():
         "lighting_simulation": lighting,
         "demo_holdout": [{"id": d["id"], "label": int(d["label"]), "hb": d["hb"], "p": round(float(p), 4)}
                          for d, p in zip(demo, demo_p)],
+        "operating_curve": operating_curve,
+        "leakage_demo": leakage_demo(bench_rows, np.random.default_rng(SEED + 1)),
     }
 
     OUT.mkdir(parents=True, exist_ok=True)

@@ -22,10 +22,18 @@ function Shot([string]$path, [string]$out, [int]$w, [int]$h, [double]$scale = 1)
 }
 
 Shot "/poster" (Join-Path $root "src\PaleCheck.Web\wwwroot\og.png") 1200 630
-foreach ($v in "", "audit", "lighting", "honest") {
+foreach ($v in "", "audit", "cheat", "lighting", "honest") {
     $name = if ($v) { "poster-$v.png" } else { "poster-hook.png" }
     Shot "/poster/$v" (Join-Path $gallery $name) 1500 1000
 }
-foreach ($p in @(@("/", "phone-home.png"), @("/check?sample=6", "phone-result.png"), @("/science", "phone-science.png"), @("/dupescope", "phone-dupescope.png"))) {
+foreach ($p in @(@("/", "phone-home.png"), @("/check?sample=2", "phone-result.png"), @("/science", "phone-science.png"), @("/dupescope", "phone-dupescope.png"))) {
     Shot $p[0] (Join-Path $gallery $p[1]) 540 1170 2   # headless Chrome won't go narrower without cropping
 }
+Shot "/benchmark?run=1" (Join-Path $gallery "desktop-benchmark.png") 1280 1100
+Shot "/science#screening" (Join-Path $gallery "desktop-screening.png") 1280 1000
+
+# The technical report as a PDF (served by the app and kept in docs/).
+$pdf = Join-Path $root "src\PaleCheck.Web\wwwroot\palecheck-report.pdf"
+& $browser --headless=new --disable-gpu --no-first-run --user-data-dir="$profileDir" --no-pdf-header-footer `
+    --virtual-time-budget=20000 --print-to-pdf="$pdf" "$Base/report" 2>$null | Out-Null
+if (Test-Path $pdf) { Copy-Item $pdf (Join-Path $root "docs\palecheck-report.pdf") -Force; "wrote $pdf" } else { "FAILED $pdf" }
