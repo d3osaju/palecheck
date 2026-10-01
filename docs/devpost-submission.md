@@ -6,7 +6,7 @@
 **Code:** https://github.com/d3osaju/palecheck (make it public before submitting)
 
 **Tagline (≤ 200 chars):**
-I tried to build an AI that spots anaemia in an eyelid photo — and found 710 patient records hiding only 312 photographs. PaleCheck is the honest version, with a ₹1 card.
+I tried to build an AI that spots anaemia in an eyelid photo — and found 710 patient records hiding only 308 photographs. PaleCheck is the honest version, with a ₹1 card.
 
 **Built with:** C#, .NET 10, Blazor WebAssembly, PWA, Python, NumPy, Pillow, xUnit, HTML Canvas, Web Speech API, GitHub Actions, Vercel
 
@@ -34,7 +34,7 @@ trusting any number, I checked the data myself.
 3. It cancels the room light using the card, rejects glare and shadow, and measures the eyelid. Up to 5 photos are
    **averaged** for a steadier reading.
 4. You get a **pallor index**, **your eyelid colour beside the average healthy and anaemic eyelid**, where you sit among
-   133 reference eyes (with an honest "overlap zone"), a **symptom checklist** that says "get tested" whatever the photo
+   131 reference eyes (with an honest "overlap zone"), a **symptom checklist** that says "get tested" whatever the photo
    shows, and the **free Anaemia Mukt Bharat test**. It can **read the result aloud** in English, Malayalam or Hindi.
 
 Offline, private (no photo ever leaves the phone), installable.
@@ -51,11 +51,11 @@ any image dataset) and a **screening calculator** (should a photo decide who get
   3. Then the Benchmark Lab's memoriser kept scoring suspiciously well on "clean" data. Its nearest neighbours were
      consecutive image numbers: **the same photograph cut out with a different outline**. I built a detector that slides
      one cut-out over the other (FFT cross-correlation, both orientations) and validated it against a mirrored control.
-     It found **245 more**, including 7 mirror images.
+     It found **247 more**, including mirror images.
 
-  In total **569 of 710 images (80%)** are copies. The 710 records contain only **312 photographs**.
+  In total **571 of 710 images (80%)** are copies. The 710 records contain only **308 photographs**.
 - **Proof that copies inflate scores.** A memoriser that knows nothing about anaemia scores **AUC 0.88** on the published
-  data, above the published deep-learning benchmark, and **0.56** once all copies are gone. My colour model stays near
+  data, above the published deep-learning benchmark, and **0.59** once all copies are gone. My colour model stays near
   **0.65** at every level. The Benchmark Lab reproduces this live in the browser, in about 3 seconds.
 - **Honest validation:** protocol fixed in advance, re-run from scratch at each audit layer (v1 → v3, all reported):
   - demo hold-out and a lockbox opened once;
@@ -76,7 +76,7 @@ any image dataset) and a **screening calculator** (should a photo decide who get
   pipeline and re-run everything, including the part of the data I had locked away, and report all three runs.
 - **The memoriser was a mystery** until I realised it was finding cut-outs of the same photograph.
 - **Proving the re-crop detector doesn't over-fire.** The mirrored-pair control was the answer.
-- **Lighting beats biology.** A yellow bulb moves eyelid redness 4.0× more than anaemia does.
+- **Lighting beats biology.** A yellow bulb moves eyelid redness 3.8× more than anaemia does.
 - **Accepting the result:** an honest AUC of about 0.65 with wide uncertainty, and building a useful product around it.
 
 ## Accomplishments that I'm proud of

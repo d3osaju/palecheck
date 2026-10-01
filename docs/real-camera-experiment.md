@@ -1,6 +1,6 @@
 # Real-camera Lighting Lab experiment (do this yourself, ~45 minutes)
 
-The simulation shows a warm bulb shifts redness 4.0× more than anaemia does, and that the card cancels it
+The simulation shows a warm bulb shifts redness 3.8× more than anaemia does, and that the card cancels it
 *in theory*. This experiment measures it with a real phone. It is the "science fair" half of the project.
 Report whatever you get, even if the card works less well than the simulation.
 
@@ -31,7 +31,7 @@ Only photograph yourself, or family members who agree.
 
 | Measure | Where |
 |---|---|
-| Redness spread without the card (a* units and × the anaemia gap of 3.6) | Lighting Lab stats |
+| Redness spread without the card (a* units and × the anaemia gap of 3.9) | Lighting Lab stats |
 | Redness spread with the card | Lighting Lab stats |
 | % of lighting error removed | Lighting Lab stats |
 | Phone model, lights used, number of photos | Your notes |

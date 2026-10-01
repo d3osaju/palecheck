@@ -15,12 +15,12 @@ While building it we found that the data and the light bulb matter more than any
 
 | Finding | Number |
 |---|---|
-| CP-AnemiC (largest public eyelid dataset): patient records vs distinct photographs | **710 records, 312 photographs** |
-| Images that are a copy of another record's photograph | **569 (80%)**: 312 pixel-identical + 12 re-encoded + 245 re-cropped or mirrored |
-| A memoriser (1-nearest-neighbour) under random 5-fold CV: published → all copies removed | **AUC 0.88 → 0.56** (colour model: 0.55 → 0.67) |
-| Honest accuracy on the 133 independent images (nested CV) | **AUC 0.65** (95% CI 0.57–0.75) |
-| Warm bulb's shift in eyelid redness vs the healthy-vs-anaemic gap | **4.0×** |
-| Photo-first screening of 1,000 Indian girls (59.1% anaemic), cautious cut-off | saves 170 blood tests, **misses 69 anaemic girls** |
+| CP-AnemiC (largest public eyelid dataset): patient records vs distinct photographs | **710 records, 308 photographs** |
+| Images that are a copy of another record's photograph | **571 (80%)**: 312 pixel-identical + 12 re-encoded + 247 re-cropped or mirrored |
+| A memoriser (1-nearest-neighbour) under random 5-fold CV: published → all copies removed | **AUC 0.88 → 0.59** (colour model: 0.55 → 0.68) |
+| Honest accuracy on the 131 independent images (nested CV) | **AUC 0.65** (95% CI 0.54–0.73) |
+| Warm bulb's shift in eyelid redness vs the healthy-vs-anaemic gap | **3.8×** |
+| Photo-first screening of 1,000 Indian girls (59.1% anaemic), cautious cut-off | saves 107 blood tests, **misses 51 anaemic girls** |
 
 So PaleCheck reports a **pallor index** with an explicit *overlap zone*, never a diagnosis; it never replaces the
 free Anaemia Mukt Bharat blood test, it gets people to it.
@@ -29,7 +29,7 @@ free Anaemia Mukt Bharat blood test, it gets people to it.
 
 | Page | What it does |
 |---|---|
-| **Check** | Photo → card found automatically → one tap on the eyelid (Smart select) → pallor index (averaged over up to 5 photos), your eyelid colour beside the healthy and anaemic averages, where you sit among 133 reference eyes, symptom checklist, free-test referral, read aloud. English, Malayalam, Hindi. |
+| **Check** | Photo → card found automatically → one tap on the eyelid (Smart select) → pallor index (averaged over up to 5 photos), your eyelid colour beside the healthy and anaemic averages, where you sit among 131 reference eyes, symptom checklist, free-test referral, read aloud. English, Malayalam, Hindi. |
 | **Benchmark Lab** | Cross-validates a memoriser and the colour model on the published images, live, at each cleaning level and split. |
 | **Science** | The three-layer audit, protocol v1 → v3, accuracy with confidence intervals, lighting, and a screening calculator (per 1,000 people, any prevalence and cut-off). |
 | **Lighting Lab** | Photograph the same target under different lights; see redness before and after card correction. |
@@ -72,7 +72,7 @@ subgroups, bootstrap CIs. v1 (identical only) and v2 (+ near-identical) are kept
 ```
 model/                 Python: get_data, audit_duplicates, near_duplicates (incl. re-crop detector), features, train, check_metrics
 model/out/             model.json + metrics.json (also copied into the app)
-data/clean/            Manifests: 141 reliable images (with split) and 569 excluded images grouped by photograph
+data/clean/            Manifests: 139 reliable images (with split) and 571 excluded images grouped by photograph
 src/PaleCheck.Core/    C#: colour maths, features, model, quality checks, Benchmark Lab engine, screening maths
 src/PaleCheck.Web/     Blazor WebAssembly PWA
 tests/                 xUnit: Python parity, Benchmark reproduction on real data, quality gates, screening, colour
@@ -82,7 +82,7 @@ docs/                  Devpost write-up, video script, protocols, technical repo
 
 ## Limitations
 
-- Only 141 independent photographs survive the audit; every AUC has a wide interval.
+- Only 139 independent photographs survive the audit; every AUC has a wide interval.
 - The re-crop search compares each image with its nearest colour neighbours only; some copies may remain.
 - Reference eyes are children aged 6–59 months in Ghana (anaemia: Hb < 11 g/dL), photographed without a colour reference.
 - Lighting results are simulated or synthetic; real-camera results come from the Lighting Lab protocol. Not a medical device.

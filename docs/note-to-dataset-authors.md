@@ -19,9 +19,9 @@ hospital, age, sex and haemoglobin. For example, Image_018, 234, 369, 411, 476, 
 share one image, with Hb ranging from 4.6 to 10.93 g/dL.
 
 Two further checks found more images that share a photograph with another record: 12 re-encoded or resized
-copies, and 245 images that are the same photograph cut out with a different outline (7 of them mirrored).
+copies, and 247 images that are the same photograph cut out with a different outline (some of them mirrored).
 For example, Image_375 and Image_376 overlap pixel-for-pixel when aligned, but are listed with different ages,
-sexes and hospitals. Altogether the 710 records appear to contain about 312 distinct photographs.
+sexes and hospitals. Altogether the 710 records appear to contain about 308 distinct photographs.
 
 Under random 5-fold cross-validation, about 42% of test images have an identical copy in the training folds,
 and a 1-nearest-neighbour model reaches AUC 0.88 without learning anything about pallor, which could affect
