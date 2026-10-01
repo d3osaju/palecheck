@@ -2,7 +2,7 @@
 
 **Track:** Coding · **Category:** Biology/Medical and Environmental Science
 **Live app:** https://palecheck.zetalabs.in
-**For judges:** one-tap demo https://palecheck.zetalabs.in/check?sample=2 · Benchmark Lab https://palecheck.zetalabs.in/benchmark?run=1 · report https://palecheck.zetalabs.in/palecheck-report.pdf
+**For judges:** one-tap demo https://palecheck.zetalabs.in/check?sample=4 (samples 1–8 all work; most land in the overlap zone, which is the honest point) · Benchmark Lab https://palecheck.zetalabs.in/benchmark?run=1 · report https://palecheck.zetalabs.in/palecheck-report.pdf
 **Code:** https://github.com/d3osaju/palecheck (make it public before submitting)
 
 **Tagline (≤ 200 chars):**

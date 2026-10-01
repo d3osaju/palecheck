@@ -3,7 +3,7 @@
 [![ci](https://github.com/d3osaju/palecheck/actions/workflows/ci.yml/badge.svg)](https://github.com/d3osaju/palecheck/actions/workflows/ci.yml)
 
 **A phone, a ₹1 printed card, and an honest look at eyelid pallor.** Live: **https://palecheck.zetalabs.in**
-· One-tap demo: [/check?sample=2](https://palecheck.zetalabs.in/check?sample=2)
+· One-tap demo: [/check?sample=4](https://palecheck.zetalabs.in/check?sample=4)
 · Benchmark Lab: [/benchmark?run=1](https://palecheck.zetalabs.in/benchmark?run=1)
 · Technical report: [PDF](https://palecheck.zetalabs.in/palecheck-report.pdf)
 

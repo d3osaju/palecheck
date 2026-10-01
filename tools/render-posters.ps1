@@ -26,7 +26,7 @@ foreach ($v in "", "audit", "cheat", "lighting", "honest") {
     $name = if ($v) { "poster-$v.png" } else { "poster-hook.png" }
     Shot "/poster/$v" (Join-Path $gallery $name) 1500 1000
 }
-foreach ($p in @(@("/", "phone-home.png"), @("/check?sample=2", "phone-result.png"), @("/science", "phone-science.png"), @("/dupescope", "phone-dupescope.png"))) {
+foreach ($p in @(@("/", "phone-home.png"), @("/check?sample=4", "phone-result.png"), @("/science", "phone-science.png"), @("/dupescope", "phone-dupescope.png"))) {
     Shot $p[0] (Join-Path $gallery $p[1]) 540 1170 2   # headless Chrome won't go narrower without cropping
 }
 Shot "/benchmark?run=1" (Join-Path $gallery "desktop-benchmark.png") 1280 1100
